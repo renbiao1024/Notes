@@ -150,3 +150,158 @@ typedef wages base, *p;  //base是double的同义词，p是double *的同义词
 using SI=Sales_item;    //SI是Sales_item的同义词
 ~~~
 
+- 用+拼接两个string对象
+
+~~~cpp
+string s1 = "Hello ", s2 = "World";
+string s3 = s1 + "World";//right
+String s4 = "HEllo "+"World";//error
+//因为string 和 字面值时不同的类型
+~~~
+
+- decltype推测类型
+
+~~~cpp
+for(decltype(s.size())index = 0;index!=s.size()&&!isspace(s[index];index++)
+    s[index] = toupper(s[index]);
+~~~
+
+- 迭代器
+
+~~~cpp
+*iter//返回iter所指得元素引用
+~~~
+
+- 连续赋值
+
+~~~cpp
+int x, y, z;
+x = y = z = 1;
+//顺序从右到左，z=1, y=z=, x=y
+~~~
+
+
+
+- sizeof对类型名必须用括号，变量名可以省略
+
+  ~~~cpp
+  int n_max = INT_MAX;
+  cout<<sizeof(int)
+      <<" "<<sizeof(n_max)
+      <<sizeof n_max;
+  	//<<sizeof int //error
+  ~~~
+
+- cout.put()
+
+~~~cpp
+//用于显示一个字符
+char ch = 77;
+//char ch = 'M';
+cout.put(ch);
+cout.put('!');
+~~~
+
+- char
+
+~~~cpp
+char ch;//maybe unsigned or signed
+unsigned char uch;//0~255
+signed char sch;//-128~127
+~~~
+
+- wchar_t宽字符类型
+
+wchar_t 16位字符型
+
+wchar_t常用于表示扩展字符集
+
+char表示基本字符集
+
+~~~cpp
+wchar_t bob = L'p';//L表示宽字符常量，宽字符串
+wcout<<L"tall"<<endl;/
+~~~
+
+- const比#define好
+
+1. const 指定了常量的类型
+2. const可以使用c++的作用域将常量限定在某个函数or文件内
+3. const可用于更复杂的类型
+
+- cout.setf
+
+ ios_base::fixed 表示：用正常的记数方法显示浮点数 (与科学计数法相对应)； ios_base::floatfield 表示小数点后保留6位小数。
+
+~~~cpp
+cout.setf(ios_base::fixed,ios_base::floatfield);
+~~~
+
+- 数据类型转化
+
+~~~cpp
+	int y = int(1.66);//c++把int() 当作类型转换的函数
+	y = (int)1.55;//c的写法
+	y = static_cast<int>(1.44);//上面的转换有危险
+~~~
+
+- 数组的初始化
+
+~~~cpp
+int s1[3] = {1,2,3};
+
+int s2[3];
+s2[3] = {1,2,3};//error
+s2[0] = 1;
+s2[1] = 2;
+s2[2] = 3;
+
+int s3[] = {1,2,3}//自动推测个数为3
+int nums = sizeof s3 / sizeof(in)
+
+int s4[3] = {1};//第一个赋值为1，其余为0
+
+int s5[3] = {0};//全部赋值为0
+~~~
+
+- 数组中的string
+
+~~~cpp
+const int Size = 15;
+char name[Size] = "RenBiao";
+cout<<name<<endl;//RenBiao
+int nums = strlen(name);
+cout<<nums;//7
+name[4] = '\0';//遇到\0认为字符串结束
+cout<<name<<endl;//RenB
+nums = strlen(name);
+cout<<nums;//4
+~~~
+
+- 读取一行输入
+
+~~~cpp
+cin.getline(name,Size); //到换行符结束，并用空字符替换换行符
+
+cin.getline(name1,Size).getline(name2,Size);//把连续两行分别给name1，name2
+
+cin.get(name,Size);  //到换行符结束，但不丢弃换行符，下次输入仍然停在这里
+cin,get()//换行,否则一直停留在上一个的换行符处
+    
+cin.get(name,Size).get();//和上面等价
+~~~
+
+- string 的操作
+
+~~~coo
+//c风格
+strcpy(s3,s1);//复制
+strcpat(s3,s2);//末尾附加
+//等价于
+s3 = s1 + s2;
+
+strlen(s1);
+
+s1.size()
+~~~
+
