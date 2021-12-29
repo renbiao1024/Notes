@@ -220,7 +220,7 @@ char表示基本字符集
 
 ~~~cpp
 wchar_t bob = L'p';//L表示宽字符常量，宽字符串
-wcout<<L"tall"<<endl;/
+wcout<<L"tall"<<endl;
 ~~~
 
 - const比#define好
@@ -296,12 +296,362 @@ cin.get(name,Size).get();//和上面等价
 ~~~coo
 //c风格
 strcpy(s3,s1);//复制
-strcpat(s3,s2);//末尾附加
+strcat(s3,s2);//末尾附加
 //等价于
 s3 = s1 + s2;
 
 strlen(s1);
 
 s1.size()
+~~~
+
+- 结构体的创建和初始化
+
+~~~cpp
+//1. 定义两个结构体变量RB ，YK
+struct People{
+  int age;
+  bool isStudent;
+  string name;
+}RB,YK;
+
+//2.定义后直接赋值
+struct People{
+  int age;
+  bool isStudent;
+  string name;
+}RB = {
+    16,
+    false,
+    RenBiao;
+};
+
+//3.提前创建好结构体变量，后续不能再创建
+struct {
+	int age;
+	bool isStudent;
+	string name;
+}RB, YK;
+RB = {12,false,"dad"};
+YK = RB;
+~~~
+
+- 结构数组
+
+~~~cpp
+struct People {
+	int age;
+    bool isMarried;
+};
+
+People Studets[2] =
+{
+	{18,false},
+    {20,true}
+};
+
+cout<<Students[1].age<<endl;//20
+~~~
+
+- 结构中的位字段
+
+~~~cpp
+//字段类型 : 位数
+struct test {
+	unsigned int SN : 4;
+    bool goodIn : 1;
+};
+
+test TT = {13,true};
+~~~
+
+- 共用体
+
+~~~cpp
+//共用体可以包含很多类型，但同一时间只能体现为一个类型
+//适用于需要节省空间的地方，如嵌入式
+struct widget 
+{
+    char brand[20];
+    int type;
+    union id
+    {
+    	long id_num;
+        char id_char[20];
+    }id_val;
+};
+
+widget price;
+
+if(price.type == 1)
+    cin >> price.id_val.id_num;
+else
+    cin >> price.id_val.id_char;
+
+///////////////////////////////
+//匿名共用体
+struct widget
+{
+  	char brand[20];
+    int type;
+    union//由于是匿名的 id_num id_char被视为两个地址相同的widget的成员
+    {
+        long id_num;
+        char id_char[20];
+    };
+};
+widget price;
+if(price.type == 1)
+    cin>>id_num;
+else 
+    cin>>id_char;
+~~~
+
+- 枚举
+
+~~~cpp
+//没有被初始化的枚举量将比前一个大一
+enum numbers{one = 1,two,four =4 ,five};//two =2  five = 5
+//enum 的范围 ：
+//			(-2^n-1||0) —— 2^n-1
+~~~
+
+- 指针的危险
+
+~~~cpp
+long *pt;
+*pt = 334;
+//计算机回分配地址的内存，但不会分配数据的内存，334可能会覆盖指向的地址的数据
+//使用指针前一定要分配合适的地址
+~~~
+
+- new申请内存
+
+~~~cpp
+int *p = new int;
+*p = 100;
+//在内存中开辟一块地址为p大小为int的空间存放*p
+//*p的值为 100
+~~~
+
+- delete释放内存
+
+delete用于将new的内存还给内存池，但不会删除指针本身，new之后不delete会发生内存泄漏
+
+~~~cpp
+int *p = new int;
+delete p;
+delete p;//error,多次删除结果不确定
+int *q = &a;
+delete q;//error，delete和new配套使用
+~~~
+
+- 静态联编&动态联编
+
+编译期分配数组的内存，且需要指定长度，始终占有内存
+
+new运行期分配数组的内存，自动确定数组的长度，需要时才分配内存
+
+~~~cpp
+int * pArr = new int[10];
+*pArr = 12;//pArr[0] = 12;
+pArr[1] = 2;
+*(pArr+2) = 3;//pArr[2] = 3
+delete [] pArr;
+~~~
+
+- new delete 使用规则
+
+不要用delete释放非new的内存
+
+不要delete一块内存两次
+
+new一个数组就要 delete[]，new一个数据就delete
+
+delete空指针是安全的
+
+new一个实体，用delete释放
+
+- 数组名 == 第一个元素的地址
+
+例外： sizeof(数组名)返回的是整个数组的长度
+
+~~~cpp
+int arr[3] = {1,2,3};
+int *p = arr;
+//equal to
+//int *p = &arr[0];
+
+//arr是首个元素的地址，arr+1 指针向后移动一个元素大小
+//&arr 是整个数组的地址 &arr+1指针向后移动arr的大小
+~~~
+
+- 管理数据内存的方式
+
+1. 自动存储：局部变量
+2. 静态存储：函数外定义 or 使用static声明
+3. 动态存储：new delete 管理了一个内存池，称为自由存储空间 or 堆。new和delete可以在一个函数中分配内存，在另一个函数中释放，不完全受程序、函数的限制，自由度大
+4. 线程存储
+
+- 数组，结构，指针
+
+~~~cpp
+	aye s1,s2,s3;
+	s1.year = 1998;//结构用 .
+	aye * pa = &s2;
+	pa->year = 1999;//指针用 ->
+	aye trio[3];
+	trio[1].year = 2000;//数组元素也是结构
+	cout << (trio+1)->year<<endl;//数组名是指针，指向首元素的地址
+	const aye *arp[3] = {&s1,&s2,&s3};
+	cout<<arp[0]->year<<endl;//指针数组每个元素都是指针
+	//const aye **ppa = arp;//ppa是一个指向arp首元素的指针 *ppa=&arp[0],**ppa = arp[0]
+	//const aye **ppa = &arp[0];//equal to upper
+	auto ppa = arp;//equal to upper
+	cout<<(*ppa)->year<<(*(ppa+1))->year<<endl;
+	cout<<(**ppa).year<<endl;
+~~~
+
+- madis = (cooks = 4)+3;
+
+madis = 7;
+
+- if(=)
+
+~~~cpp
+	int x;
+	if(x = 0)//0，假，不进入
+		cout<<x;
+	if(x = 1)//1，真，进入
+		cout<<x;
+~~~
+
+- 判断字符类型
+
+~~~CPP
+#include <cctype>
+isalpha()//字母
+ispunct()//符号
+isspace()//空格
+isupper()
+toupper()
+islower()
+~~~
+
+- switch
+
+~~~cpp
+switch(choice)
+{
+    case 'a':
+    case 'A':
+        ...
+            break;
+    case 'b':
+    case 'B':
+        ...
+            break;
+    default: ...
+}
+
+//配合枚举类
+enum{red,blue,green,orange};
+
+while(code>=red&&code<=orange) 
+{
+    switch(code)
+    {
+        case red:...break;
+        case blue :...break;
+        case green :...break;
+            ...
+                default:...;
+    }
+}
+~~~
+
+- 按值传递
+
+~~~cpp
+int func (int arr[]);
+//虽然按值传递，但传入的是一个arr指针，指向一个地址，这个指针不能改变，但指向的内容可以改变
+//如果不希望改变
+int func (const int arr[])
+~~~
+
+- 指针&const
+
+~~~cpp
+int age = 35;
+int *p = &age;
+const int *pt = &age;
+
+const int b = 2;
+const int* p1 = &b;
+//int* p2 = &b;//error,可变指针指向一个常数是不可取的
+~~~
+
+- const的位置
+
+~~~cpp
+int x = 0;
+int *p1 = &x;
+const int *p2 = &x;//不能修改p3指向的值
+int* const p3 = &x;//不能修改p3指向的地址
+const int* const p4 = &x;//都不能改
+~~~
+
+- 二维数组
+
+~~~cpp
+//数组名是一个地址，指向内部元素
+//二维数组的数组名，指向列数组的指针
+
+//说明ar2是一个由4个指针构成的指向4个int的的指针数组
+int sum(int ar2[][4],int size);
+int sum(int(*ar2)[4],int size);
+
+int a[12][4];
+int b = sum(a,12);
+
+ar2[r][c] = *(*(ar2+r)+c)
+//ar2指向第一个4 int数组
+//ar2+r指向第r个4 int数组
+//*(ar2+r)拿到第r个4 int数组，自己本身又是该数组的名字，指向第一个int
+//*(ar2+r)+c //指向第r个数组中第c个int
+//*(*(ar2+r)+c)//拿到该int
+~~~
+
+- string表示
+
+~~~cPP
+char str1[10] = "abcde";
+char *str2 = "abcde";
+string str3 = "abcde";
+//strlen(str1)==strlen(str2)==strlen(str3)
+~~~
+
+- 引用解决了效率和表示法两方面的问题
+
+
+
+- 函数指针
+
+~~~cpp
+process(think);//把think函数的地址传给process
+thought(think());//把think的return value传给thought
+
+double pam(int);//普通函数
+double *rpf(int);//返回指针的函数
+double (*pf)(int);//指针函数的声明，pf是函数指针
+
+pf = pam;//pf指向pam函数，返回值和参数必须一致才能使用
+//以下都对，都是调用pam(0)
+double x = pam(0);
+double y = (*pf)(0);
+double z = pf(0);
+
+void estimate(double (*pf)(int));
+estimate(pam);//estimate可以使用pam函数了
 ~~~
 
