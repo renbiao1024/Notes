@@ -768,7 +768,8 @@ template<>void func(T a[]);
 
 //实例化
 int a = 0;
-func(a);//隐式
+func(a);//隐式，若果有w
+func<>(a);//表示必须用模板函数
 //显式
 template<> func<int>(int a);
 template<> func(int a);
