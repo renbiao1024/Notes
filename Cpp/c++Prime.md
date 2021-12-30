@@ -655,3 +655,147 @@ void estimate(double (*pf)(int));
 estimate(pam);//estimate可以使用pam函数了
 ~~~
 
+- 数组名
+
+~~~cpp
+int arr[];
+//arr表示&arr[0]
+//&arr表示整个数组的地址
+//arr+1表示&arr[1]
+//&arr+1表示下一个数组大小的空间
+//*arr表示arr[0]
+//*&arr表示&arr[0]
+//**&arr表示arr[0]
+~~~
+
+- 内联函数
+
+inline
+
+空间换时间，每次调用都产生一个函数副本
+
+无需跳到函数调用，编译期用相应的代码块替换函数
+
+不能递归调用
+
+适用于小的函数，函数过大编译器可能不允许内联
+
+类似c语言中的#define，但宏定义不能按值传递
+
+- 指针&引用
+
+引用在声明的时候必须初始化，类似const *，一旦初始化，就不能修改
+
+~~~cpp
+int rat ;
+int & rodent = rat;
+int *const pr = &rat;//equal to upper
+~~~
+
+- 引用&常量引用
+
+~~~cpp
+//引用不能使用类型不匹配的参数和非左值参数，因为如果产生临时变量回影响传引用改变原始数据的目的
+//常引用可以，会生成一个临时变量，因为const代表不能修改原始数据，所以用临时变量也无妨
+~~~
+
+应尽量使用const
+
+1. 防止原始数据被修改
+2. const可以处理const&&非const的数据，而不加const只能处理非const的数据
+3. const能使函数正确生成临时变量
+
+- 传参方式的选择
+
+  - 数据需要修改？
+
+    - 需要修改
+
+      - 数组 or 内置数据类型：传指针
+      - 类：传引用
+      - 结构体：传指针 or 传引用
+
+    - 不需要修改
+
+      - 数据对象小？
+
+        - 小：传值
+
+        - 大
+
+          - 是数组：传指向const的指针
+
+          - 是类对象:传引用
+
+- 函数重载
+
+~~~cpp
+int x = 0;
+//void print(int x);
+void print(int& x);
+//由于调用的时候两种声明没法区分
+//所以编译期把类型引用和类型本身视作同一特征标，防止歧义发生
+
+void print(const int x);//override
+
+//重载会选择最匹配的来使用
+void print(const int x);
+void print(int&&x);
+
+int a = 0;
+const int b = 3;
+print(a);//void print(int& x);
+print(b);//void print(const int x);
+print(a+b);//void print(int&&x);
+~~~
+
+c++由名称修饰和名称矫正，我们看起来同样的函数，在编译器里不同
+
+- 函数模板
+
+~~~cpp
+template <typename T>//<class T>等价
+void func(T &a);
+~~~
+
+- 函数模板的重载
+
+~~~cpp
+template<typename T>
+void func(T&a);
+
+template<>void func(T a[]);
+
+//实例化
+int a = 0;
+func(a);//隐式
+//显式
+template<> func<int>(int a);
+template<> func(int a);
+~~~
+
+- 编译器面对函数重载的处理方法
+
+1. 创建候选函数列表，包含函数名相同的函数
+2. 创建可行函数列表，包含参数数目正确的函数
+3. 确定是否有最佳可行函数：判断依据：一等：完美匹配，二等：提升转换，三等：标准转换，四等：自定义转换
+
+提升转换：char short ->int   float->double
+
+标准转换：int->char  long->double
+
+完美匹配允许一些无关紧要的转换
+
+Type<->Type& 
+
+Type[] <->*Type
+
+Type(argument_list) <-> Type(*)(argument_list)
+
+Type <-> const Type
+
+Type <-> volatile Type
+
+Type* <->const Type
+
+Type* <-> volatile type*
