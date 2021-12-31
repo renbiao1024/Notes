@@ -11,18 +11,19 @@
 - `::`作用域运算符
 
 - 读取数量不定的输入数据`while(std::cin>>val) sum+=val;`
+
 - `()`调用成员函数(方法)，`if(item1.isEqual() == item2.isEqual())`
 
-- 转义序列
+  ## 转义序列
 
-	\n	换行符		 	   \'  单引号
-	\t	横向制表符		  \"  双引号
-	\a	响铃				\f	进纸符
-	\v	纵向制表符		  \?	问号
-	\\	反斜线				\b	退格符
-	\r	回车符
+  \n	换行符		 	   \'  单引号
+  \t	横向制表符		  \"  双引号
+  \a	响铃				\f	进纸符
+  \v	纵向制表符		  \?	问号
+  \\	反斜线				\b	退格符
+  \r	回车符
 
-- `extern`只想声明而不定义使用，且不要显式初始化。可以给extern显式初始化，一旦这样做，就成了定义。在函数体内部初始化extern标记的变量，将引发错误
+  ## `extern`只想声明而不定义使用，且不要显式初始化。可以给extern显式初始化，一旦这样做，就成了定义。在函数体内部初始化extern标记的变量，将引发错误
 
 ~~~cpp
 extern int i; //声明
@@ -30,15 +31,15 @@ int j;        //声明并定义
 extern double pi-3.1416 //定义
 ~~~
 
-- void* 指针是一种特殊的指针类型，可存放任意类型对象的地址
+## void* 指针是一种特殊的指针类型，可存放任意类型对象的地址
 
 void* 指针能做的事：与其他指针比较大小  作为函数的输入输出传递  赋值给另一个void *指针
 
 void* 指针不能直接操作void*指针所指的对象，因为不知对象类型
 
-- const
+## const
 
-  默认状态下，const对象仅在文件内有效
+默认状态下，const对象仅在文件内有效
 
 在编译期将const变量都替换为对应的值
 
@@ -89,7 +90,7 @@ i = 10;
 std::cout << r2 << std::endl; //输出10
 ~~~
 
-- 指向常量的指针&常量指针
+## 指向常量的指针&常量指针
 
 ~~~cpp
 //定义“常量指针”，存放的地址不能修改，但其所指对象的值可以修改
@@ -102,13 +103,13 @@ const double *const pip=&pi;  //指向常量对象的常量指针。pip是const�
 
 ~~~
 
-- 顶层const && 底层const
+## 顶层const && 底层const
 
 顶层const是指const指针本身是个常量：常量指针，拷贝是不受影响
 
 底层const是指const指的对象是个常量：指向常量的指针，拷贝时底层类型严格匹配，或者能相互转换。
 
-- constexpr && 常量表达式
+## constexpr && 常量表达式
 
 常量表达式：指不会改变，且在编译期就能得到结果的表达式（两个条件缺一不可）
 
@@ -129,13 +130,13 @@ constexpr int limit=mf+1;//是常量表达式
 constexpr int sz=size();//只有当函数size()是constexpr函数时，才是初始化constexpr变量
 ~~~
 
-- 字面值类型
+## 字面值类型
 
 算术类型、引用和指针属于字面值类型
 
 自定义类Sales_item、IO库、string类型不属于字面值类型
 
-- 类型别名
+## 类型别名
 
 定义方法：
 
@@ -150,7 +151,7 @@ typedef wages base, *p;  //base是double的同义词，p是double *的同义词
 using SI=Sales_item;    //SI是Sales_item的同义词
 ~~~
 
-- 用+拼接两个string对象
+## 用+拼接两个string对象
 
 ~~~cpp
 string s1 = "Hello ", s2 = "World";
@@ -159,20 +160,20 @@ String s4 = "HEllo "+"World";//error
 //因为string 和 字面值时不同的类型
 ~~~
 
-- decltype推测类型
+## decltype推测类型
 
 ~~~cpp
 for(decltype(s.size())index = 0;index!=s.size()&&!isspace(s[index];index++)
     s[index] = toupper(s[index]);
 ~~~
 
-- 迭代器
+## 迭代器
 
 ~~~cpp
 *iter//返回iter所指得元素引用
 ~~~
 
-- 连续赋值
+## 连续赋值
 
 ~~~cpp
 int x, y, z;
@@ -182,17 +183,17 @@ x = y = z = 1;
 
 
 
-- sizeof对类型名必须用括号，变量名可以省略
+## sizeof对类型名必须用括号，变量名可以省略
 
-  ~~~cpp
-  int n_max = INT_MAX;
-  cout<<sizeof(int)
-      <<" "<<sizeof(n_max)
-      <<sizeof n_max;
-  	//<<sizeof int //error
-  ~~~
+~~~cpp
+int n_max = INT_MAX;
+cout<<sizeof(int)
+    <<" "<<sizeof(n_max)
+    <<sizeof n_max;
+	//<<sizeof int //error
+~~~
 
-- cout.put()
+## cout.put()
 
 ~~~cpp
 //用于显示一个字符
@@ -202,7 +203,7 @@ cout.put(ch);
 cout.put('!');
 ~~~
 
-- char
+## char
 
 ~~~cpp
 char ch;//maybe unsigned or signed
@@ -210,7 +211,7 @@ unsigned char uch;//0~255
 signed char sch;//-128~127
 ~~~
 
-- wchar_t宽字符类型
+## wchar_t宽字符类型
 
 wchar_t 16位字符型
 
@@ -223,13 +224,13 @@ wchar_t bob = L'p';//L表示宽字符常量，宽字符串
 wcout<<L"tall"<<endl;
 ~~~
 
-- const比#define好
+## const比#define好
 
 1. const 指定了常量的类型
 2. const可以使用c++的作用域将常量限定在某个函数or文件内
 3. const可用于更复杂的类型
 
-- cout.setf
+## cout.setf
 
  ios_base::fixed 表示：用正常的记数方法显示浮点数 (与科学计数法相对应)； ios_base::floatfield 表示小数点后保留6位小数。
 
@@ -237,7 +238,7 @@ wcout<<L"tall"<<endl;
 cout.setf(ios_base::fixed,ios_base::floatfield);
 ~~~
 
-- 数据类型转化
+## 数据类型转化
 
 ~~~cpp
 	int y = int(1.66);//c++把int() 当作类型转换的函数
@@ -245,7 +246,7 @@ cout.setf(ios_base::fixed,ios_base::floatfield);
 	y = static_cast<int>(1.44);//上面的转换有危险
 ~~~
 
-- 数组的初始化
+## 数组的初始化
 
 ~~~cpp
 int s1[3] = {1,2,3};
@@ -264,7 +265,7 @@ int s4[3] = {1};//第一个赋值为1，其余为0
 int s5[3] = {0};//全部赋值为0
 ~~~
 
-- 数组中的string
+## 数组中的string
 
 ~~~cpp
 const int Size = 15;
@@ -278,7 +279,7 @@ nums = strlen(name);
 cout<<nums;//4
 ~~~
 
-- 读取一行输入
+## 读取一行输入
 
 ~~~cpp
 cin.getline(name,Size); //到换行符结束，并用空字符替换换行符
@@ -291,7 +292,7 @@ cin,get()//换行,否则一直停留在上一个的换行符处
 cin.get(name,Size).get();//和上面等价
 ~~~
 
-- string 的操作
+## string 的操作
 
 ~~~coo
 //c风格
@@ -305,7 +306,7 @@ strlen(s1);
 s1.size()
 ~~~
 
-- 结构体的创建和初始化
+## 结构体的创建和初始化
 
 ~~~cpp
 //1. 定义两个结构体变量RB ，YK
@@ -336,7 +337,7 @@ RB = {12,false,"dad"};
 YK = RB;
 ~~~
 
-- 结构数组
+## 结构数组
 
 ~~~cpp
 struct People {
@@ -353,7 +354,7 @@ People Studets[2] =
 cout<<Students[1].age<<endl;//20
 ~~~
 
-- 结构中的位字段
+## 结构中的位字段
 
 ~~~cpp
 //字段类型 : 位数
@@ -365,7 +366,7 @@ struct test {
 test TT = {13,true};
 ~~~
 
-- 共用体
+## 共用体
 
 ~~~cpp
 //共用体可以包含很多类型，但同一时间只能体现为一个类型
@@ -407,7 +408,7 @@ else
     cin>>id_char;
 ~~~
 
-- 枚举
+## 枚举
 
 ~~~cpp
 //没有被初始化的枚举量将比前一个大一
@@ -416,7 +417,7 @@ enum numbers{one = 1,two,four =4 ,five};//two =2  five = 5
 //			(-2^n-1||0) —— 2^n-1
 ~~~
 
-- 指针的危险
+## 指针的危险
 
 ~~~cpp
 long *pt;
@@ -425,7 +426,7 @@ long *pt;
 //使用指针前一定要分配合适的地址
 ~~~
 
-- new申请内存
+## new申请内存
 
 ~~~cpp
 int *p = new int;
@@ -434,7 +435,7 @@ int *p = new int;
 //*p的值为 100
 ~~~
 
-- delete释放内存
+## delete释放内存
 
 delete用于将new的内存还给内存池，但不会删除指针本身，new之后不delete会发生内存泄漏
 
@@ -446,7 +447,7 @@ int *q = &a;
 delete q;//error，delete和new配套使用
 ~~~
 
-- 静态联编&动态联编
+## 静态联编&动态联编
 
 编译期分配数组的内存，且需要指定长度，始终占有内存
 
@@ -460,7 +461,7 @@ pArr[1] = 2;
 delete [] pArr;
 ~~~
 
-- new delete 使用规则
+## new delete 使用规则
 
 不要用delete释放非new的内存
 
@@ -472,7 +473,7 @@ delete空指针是安全的
 
 new一个实体，用delete释放
 
-- 数组名 == 第一个元素的地址
+## 数组名 == 第一个元素的地址
 
 例外： sizeof(数组名)返回的是整个数组的长度
 
@@ -486,14 +487,14 @@ int *p = arr;
 //&arr 是整个数组的地址 &arr+1指针向后移动arr的大小
 ~~~
 
-- 管理数据内存的方式
+## 管理数据内存的方式
 
-1. 自动存储：局部变量
-2. 静态存储：函数外定义 or 使用static声明
-3. 动态存储：new delete 管理了一个内存池，称为自由存储空间 or 堆。new和delete可以在一个函数中分配内存，在另一个函数中释放，不完全受程序、函数的限制，自由度大
-4. 线程存储
+1. 自动存储：局部变量，函数结束时释放内存
+2. 静态存储：函数外定义 or 使用static声明，程序结束时释放内存
+3. 动态存储：new delete 管理了一个内存池，称为自由存储空间 or 堆。new和delete可以在一个函数中分配内存，在另一个函数中释放，不完全受程序、函数的限制，自由度大。delete释放内存
+4. 线程存储：thread_local声明，其生命周期和所属线程一样长
 
-- 数组，结构，指针
+## 数组，结构，指针
 
 ~~~cpp
 	aye s1,s2,s3;
@@ -512,11 +513,11 @@ int *p = arr;
 	cout<<(**ppa).year<<endl;
 ~~~
 
-- madis = (cooks = 4)+3;
+## madis = (cooks = 4)+3;
 
 madis = 7;
 
-- if(=)
+## if(=)
 
 ~~~cpp
 	int x;
@@ -526,7 +527,7 @@ madis = 7;
 		cout<<x;
 ~~~
 
-- 判断字符类型
+## 判断字符类型
 
 ~~~CPP
 #include <cctype>
@@ -538,7 +539,7 @@ toupper()
 islower()
 ~~~
 
-- switch
+## switch
 
 ~~~cpp
 switch(choice)
@@ -570,7 +571,7 @@ while(code>=red&&code<=orange)
 }
 ~~~
 
-- 按值传递
+## 按值传递
 
 ~~~cpp
 int func (int arr[]);
@@ -579,7 +580,7 @@ int func (int arr[]);
 int func (const int arr[])
 ~~~
 
-- 指针&const
+## 指针&const
 
 ~~~cpp
 int age = 35;
@@ -591,7 +592,7 @@ const int* p1 = &b;
 //int* p2 = &b;//error,可变指针指向一个常数是不可取的
 ~~~
 
-- const的位置
+## const的位置
 
 ~~~cpp
 int x = 0;
@@ -601,7 +602,7 @@ int* const p3 = &x;//不能修改p3指向的地址
 const int* const p4 = &x;//都不能改
 ~~~
 
-- 二维数组
+## 二维数组
 
 ~~~cpp
 //数组名是一个地址，指向内部元素
@@ -622,7 +623,7 @@ ar2[r][c] = *(*(ar2+r)+c)
 //*(*(ar2+r)+c)//拿到该int
 ~~~
 
-- string表示
+## string表示
 
 ~~~cPP
 char str1[10] = "abcde";
@@ -631,11 +632,11 @@ string str3 = "abcde";
 //strlen(str1)==strlen(str2)==strlen(str3)
 ~~~
 
-- 引用解决了效率和表示法两方面的问题
+## 引用解决了效率和表示法两方面的问题
 
 
 
-- 函数指针
+## 函数指针
 
 ~~~cpp
 process(think);//把think函数的地址传给process
@@ -655,7 +656,7 @@ void estimate(double (*pf)(int));
 estimate(pam);//estimate可以使用pam函数了
 ~~~
 
-- 数组名
+## 数组名
 
 ~~~cpp
 int arr[];
@@ -668,7 +669,7 @@ int arr[];
 //**&arr表示arr[0]
 ~~~
 
-- 内联函数
+## 内联函数
 
 inline
 
@@ -682,7 +683,7 @@ inline
 
 类似c语言中的#define，但宏定义不能按值传递
 
-- 指针&引用
+## 指针&引用
 
 引用在声明的时候必须初始化，类似const *，一旦初始化，就不能修改
 
@@ -692,7 +693,7 @@ int & rodent = rat;
 int *const pr = &rat;//equal to upper
 ~~~
 
-- 引用&常量引用
+## 引用&常量引用
 
 ~~~cpp
 //引用不能使用类型不匹配的参数和非左值参数，因为如果产生临时变量回影响传引用改变原始数据的目的
@@ -714,20 +715,17 @@ int *const pr = &rat;//equal to upper
       - 数组 or 内置数据类型：传指针
       - 类：传引用
       - 结构体：传指针 or 传引用
-
-    - 不需要修改
-
-      - 数据对象小？
-
-        - 小：传值
-
+  - 不需要修改
+    
+    - 数据对象小？
+    
+      - 小：传值
         - 大
-
+      
           - 是数组：传指向const的指针
+      - 是类对象:传引用
 
-          - 是类对象:传引用
-
-- 函数重载
+## 函数重载
 
 ~~~cpp
 int x = 0;
@@ -751,14 +749,14 @@ print(a+b);//void print(int&&x);
 
 c++由名称修饰和名称矫正，我们看起来同样的函数，在编译器里不同
 
-- 函数模板
+## 函数模板
 
 ~~~cpp
 template <typename T>//<class T>等价
 void func(T &a);
 ~~~
 
-- 函数模板的重载
+## 函数模板的重载
 
 ~~~cpp
 template<typename T>
@@ -775,7 +773,7 @@ template<> func<int>(int a);
 template<> func(int a);
 ~~~
 
-- 编译器面对函数重载的处理方法
+## 编译器面对函数重载的处理方法
 
 1. 创建候选函数列表，包含函数名相同的函数
 2. 创建可行函数列表，包含参数数目正确的函数
@@ -800,3 +798,155 @@ Type <-> volatile Type
 Type* <->const Type
 
 Type* <-> volatile type*
+
+
+
+## 静态持续变量
+
+分配固定的内存管理，程序运行期间始终存在
+
+~~~cpp
+int x = 10;//外部链接性，可在其他文件中访问
+static int y = 9;//内部连接性，只能在当前文件访问
+void func()
+{
+    int m;//自动变量，当前代码k结束就释放内存
+    static int z = 8;//无链接性，只能在当前函数or代码块访问
+}
+~~~
+
+
+
+## 五种变量的存储方式
+
+| 存储描述         | 持续性 | 作用域   | 链接性 | 声明方式         |
+| ---------------- | ------ | -------- | ------ | ---------------- |
+| 自动             | 自动   | 代码块   | 无     | 代码块内         |
+| 寄存器           | 自动   | 代码块   | 无     | 代码块内register |
+| 静态，无链接性   | 静态   | 代码块   | 无     | 代码块内static   |
+| 静态，内部链接性 | 静态   | 当前文件 | 内部   | 文件内static     |
+| 静态，外部链接性 | 静态   | 文件     | 外部   | 文件内           |
+
+## extern
+
+引用声明：extern 且不初始化
+
+如果初始化，就是定义，分配内存（单定义规则：只能在一个文件定义）
+
+~~~cpp
+//file1
+int x = 0;
+extern int y;
+
+//file2
+extern x;
+extern y = 1;//定义
+
+//file3
+extern x;
+//没有extern y;不能使用y
+~~~
+
+~~~cpp
+//file1
+extern int x = 0;
+void func()
+{
+	int x = 1;
+    cout<<x<<::x;
+    //x是1，隐藏了全局变量
+    //::x是0，表示当前作用域的数据
+}
+
+//file2
+//int x = 2;//error,违背单定义原则
+static int x = 1;//right，在当前文件中隐藏外部x，使用自己的x
+~~~
+
+## volatile
+
+~~~cpp
+//改善编译器的优化能力
+//没有修改变量值，它也可能发生变化，阻止编译器将改变多次的数据放在寄存器，而是每次都重新取数据
+~~~
+
+## mutable
+
+~~~cpp
+//即使声明为const的结构/类，这个变量也可以修改
+struct data 
+{
+    int x;
+    mutable int y;
+}
+
+const data d {1,2};
+d.x++;//error
+d.y++;//right
+~~~
+
+## const的链接性
+
+~~~c'p'p
+//内部链接性
+const int x;
+//equal to
+static const int x;
+
+//外部链接性
+extern const int x;
+~~~
+
+## 函数的链接性
+
+~~~cpp
+//默认情况下，函数是外部链接的,可以文件之间共享
+extern void func();
+void func();
+
+//内部链接性
+static void func();
+~~~
+
+## 语言的链接性
+
+由于重载函数的存在，每个函数名都可能对应对多个函数，他们在编译器的名称修饰就会不同
+
+~~~cpp
+//默认c++风格
+int func(int x ,int y);//_func_i_i
+int func(double x);//_func_d
+
+//显式指定链接性
+extern "C" void func(int);//_func,C风格
+extern void func(int);//_func_i，c++风格
+extern "C++" void func(int);//_func_i，c++风格
+~~~
+
+## size_t 对应于合适的整型
+
+## 定位new的用法
+
+~~~cpp
+#include <new>
+struct chaff
+{
+    char dross[20];
+    int slag;
+};
+
+char buffer1[50];
+char buffer2[500];
+
+int main()
+{
+	chaff*p1,*p2;
+    p1 = new chaff;//调用 new(sizeof(chaff));
+    p3 = new int[20];//在堆/自由存储区分配内存  调用new(sizeof(int)*20);
+    p2 = new(buffer1)chaff;//从buffer1中分配内存给chaff   调用new(sizeof(chaff),buffer1);
+    p4 = new(buffer2)int[20];//从buffer2中分配内存给int[20]   调用new(sizeof(int)*20,buffer2);
+}
+~~~
+
+
+
