@@ -1018,3 +1018,104 @@ const Stock& Stock::topval(const Stock&s)const
 }
 ~~~
 
+## 操作符重载
+
+~~~cpp
+class Time
+{
+  	Time operatpr+(const Time&t)const;  
+};
+
+Time a,b,c;
+Time d = a+b;
+Time d = a.operator+(b);//ditto
+
+Time d = a+b+c;
+Time d = a.operator+(b+c);//ditto
+Time d = a.operator(b.operator+(c));//ditto
+~~~
+
+重载的限制：
+
+1. 至少有一个书是用户自定义的类型 ：不能重载 - 为两个doube的和
+2. 不能违反运算符原来的句法规则：%不能重载成操作数
+3. 不能修改运算符的优先级
+4. 不能创建新的运算符
+5. 不能重载下面的运算符`sizeof  .  *(指针)  ::  ?:  typeid  const_cast  dynamic_cast  reinterpret_cast  static_cast`
+6. 这些符号只能通过成员函数重载：`=  ()  []  ->`
+
+## 友元函数
+
+在类声明加friend，定义时不加，也不要class::
+
+操作符重载，形参小于等于1 用类成员函数，形参大于1用友元函数
+
+~~~cpp
+class sd
+{
+    public:
+    friend sd operator*(const sd&s,const double a);
+}
+sd opeator*(const sd&s,const double a)
+{
+}
+
+
+//一般来说，要重载<<运算符，可使用友元函数
+ostream& operator<<(ostream&os,const Time &obj)
+{
+    os<<...;
+    return os;
+}
+~~~
+
+## 随机值
+
+~~~cpp
+#include <cstdlib>
+#include <ctime>
+rand()//固定随机数
+srand(time(0))//可刷新的随机数
+~~~
+
+## explicit
+
+只接受一个参数的构造函数定义了类型自动转换
+
+explicit阻止自动转换，需要显式调用
+
+~~~c'p'p
+Stone (double da);//可自动将double转换成Stone
+explicit Stone(double da);//阻止自动类型转换
+~~~
+
+## 反向转换需要转换函数
+
+~~~cpp
+Stone w(12);
+double a = double(w);
+~~~
+
+转换函数:
+
+1. 必须是类方法
+2. 不能有参数
+3. 不能有返回类型
+
+~~~cpp
+//operator TypeName();
+
+class Stone{
+private:
+    int x;
+public:
+	operator double()const;
+	operator int()const; 
+    explicit operator long()const//显式调用
+};
+Stone::operator double()const
+{
+    return double(x);
+}
+~~~
+
