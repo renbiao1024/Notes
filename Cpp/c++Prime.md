@@ -950,3 +950,71 @@ int main()
 
 
 
+## 类的默认访问控制是private
+
+## 结构的默认访问控制是public
+
+## 类
+
+私有部分体现了封装
+
+公共部分是接口or抽象
+
+## 构造函数
+
+构造函数用了new，析构函数必须有delete
+
+~~~cpp
+class Stock
+{
+public:
+    Stock(const string& company,long shares)
+    {
+	}
+private:
+    string m_company;
+    long m_shares;
+};
+
+Stock garment("sda",21);
+Stock garment = Stock("sda",21);
+~~~
+
+~~~cpp
+Stock st1 = Stock("sasd",23);//c
+Stock st2 ;
+st2 = Stock("sad",23);
+~~~
+
+## const成员函数
+
+~~~cpp
+class Stock
+{
+    ...
+public:
+ 	void land()const;  //限定自己 this指针不可修改
+    void arrive();
+}
+
+
+const Stock St1 {};
+St1.land();
+St1.arrive();//error 无法确保该d
+~~~
+
+## this
+
+this 是调用它的对象的地址
+
+*this是对象本身
+
+~~~cpp
+const Stock& Stock::topval(const Stock&s)const
+{//返回const引用，const显式访问对象，const隐式访问对象()
+	if(s.val>val)//equal to   s.val>this->val
+        return s;
+    else return *this;
+}
+~~~
+
