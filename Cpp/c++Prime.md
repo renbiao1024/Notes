@@ -1119,3 +1119,101 @@ Stone::operator double()const
 }
 ~~~
 
+## 特殊成员函数
+
+~~~cpp
+class Klunk{
+	//默认构造函数
+	Klunk();
+    
+	//默认析构函数
+	~Klunk();
+    
+	//复制构造函数:调用时不执行构造函数，直接复制副本，因此要吧构造函数的一些变化写在复制构造函数里
+    //复制的时指向变量的指针，可能引发释放多次的问题，称为浅拷贝
+	Klunk(const Klunk&);
+	//深拷贝解决了上诉问题
+    Klunk (const Klunk&kk)
+    {
+        num_strings ++;
+        len = kk.len;
+        str = new char[len+1];
+        strcpy(str,kk.str);
+    }
+    
+    //赋值运算符，也应该深赋值，而不是仅仅传递指针 
+	Klunk & operator = (const Klunk &);
+    //默认赋值也时浅拷贝
+    //深赋值
+    Klunk & operator=(const Klunk &kk)
+    {
+		if(&kk = this) return *this;
+        delete[]str;
+        len = kk.len;
+        str = new char[len+1];//先清除str的内容 后开辟新的地址，防止内存泄漏
+        strcpy(str,kk.str);
+        return *this;
+    }
+    
+	//地址运算符
+
+	//移动构造函数
+
+	//移动赋值运算符  
+};
+
+//复制构造调用方式
+Klunk a;
+Klunk b(a);
+Klunk c = a;
+Klunk d = Klunk(a);
+Klunk *e = new Klunk(a);
+~~~
+
+## 静态类成员函数
+
+不能通过对象调用该函数，没有this指针，只能使用类静态成员
+
+~~~cpp
+static int func();
+
+int x = ClassName::func();
+~~~
+
+## 构造函数注意事项
+
+~~~cpp
+String::String()
+{	
+	len = 0;
+    
+	str = new char[1];//由于每个构造函数都是[]类型，析构函数时delete[]，所以一定不能用str = new char;
+	str[0] = '/0';
+	//str = 0;//str = nullptr;同上两行
+}
+
+String::String(const String&st)//深拷贝
+{
+    len = st.len;
+    str = new char[len+1];
+    strcpy(str,st.str);
+}
+~~~
+
+## 初始化列表
+
+~~~cpp
+class Queue
+{
+private:
+    //被声明为非静态常量，引用的类成员，必须用初始化列表初始化
+    Queue& sd;
+    const int x;
+
+public:
+    Queue(int qs,queue&d):x(qs),sd(d){}
+    
+    //Queue(int qs,queue&d){x = qs;s}//error，const常量只能初始化不能赋值
+};
+~~~
+
