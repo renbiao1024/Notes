@@ -1121,6 +1121,8 @@ Stone::operator double()const
 
 ## 特殊成员函数
 
+<img src="c++Prime.assets/image-20220103101925834.png" alt="image-20220103101925834" style="zoom: 67%;" />
+
 ~~~cpp
 class Klunk{
 	//默认构造函数
@@ -1231,6 +1233,10 @@ public:
 
 构造函数，析构函数，赋值运算符不能继承
 
+默认继承是private
+
+![image-20220103110448261](c++Prime.assets/image-20220103110448261.png)
+
 ~~~cpp
 class Father
 {
@@ -1327,6 +1333,260 @@ ostream&operator<<(ostream&os,const Son&s)
 {
     os<<(const Father&)f;
     return os;
+}
+~~~
+
+## 初始化顺序
+
+初始化列表的初始化顺序和声明顺序一致，和初始化列表顺序无关
+
+## is a && has a 
+
+公共继承实现 is a，可以是接口
+
+类包含，私有继承实现has a，不会成为接口
+
+一般用包含建立has a关系，他能同时包含多个相同的类的对象，但是当需要访问原有的保护成员，或者需要重新定义虚函数，则使用私有继承。
+
+## 访问权限的重定义
+
+~~~cpp
+//私有继承，保护继承要想使父类的方法Sum在类外可用
+//方法一：声明一个调用父类方法的接口
+double Son::Sum()const
+{
+    return Father::Sum();
+}
+//方法二：using声明,只适用于继承，不适用于包含
+class Son{
+public:
+  using Father::Sum;  
+};
+~~~
+
+## 虚基类
+
+不使用虚基类就要有很多限定符来指定调用的函数
+
+继承自同一个类的两个子类，第三个类同时继承自他们，就会发现第三个类中有两个基类。
+
+这时候使用虚基类使从多个类（他们的基类相同）派生出的对象只继承一个基类对象。
+
+~~~cpp
+class BaseFather{};
+class Father_1:virtual public BaseFather{};
+class Father_2:virtual public BaseFather{};
+class Son:public Father_1,public Father_2{};
+//这样，Son中只包含了一个BAseFAther的副本，可以正常使用多态
+~~~
+
+~~~cpp
+//子类构造函数时，普通积累可以自动调用父类的构造，并且延续上去
+//虚基类不允许这样，因为有两条父类的路可以选，出现歧义。构造函数需要显式完成初始化列表的父类构造
+//该方法虚基类必须用，但普通类是非法的，不允许使用
+class Son:public Father_1,public Father_2
+{
+public:
+    Son(...):Father_1(...),Father_2(...),BaseFather(...){}
+};
+~~~
+
+~~~cpp
+//MI（多重继承）可能导致函数的多义性
+//两个直接父类都有同一个函数，儿子类没有重定义，调用这个函数将出现问题
+//调用方法
+Son s;
+s.Father_1::show();
+
+//重新定义最好
+void show()
+{
+    Father_1::show();
+    Father_2::show();//如果同时递增调用两个父类的函数，会调用BaseFather.show()两次
+}
+
+//用模块化方法处理上述问题
+
+~~~
+
+## 同名函数的优先级
+
+重新定义的优先
+
+优先级高的可以直接使用，不需要限定符
+
+同优先级的函数必须有限定符
+
+私有性不能改变优先级
+
+## 模板类
+
+模板必须和特定顶的模板实例化一起使用
+
+~~~cpp
+template <typename Type>
+class Stack
+{
+private:
+    Type item[10];
+public:
+    bool pop(Type&item);
+};
+
+template <typename Type>
+bool Stack<Type>::pop(Type&item)
+{
+    ......
+}
+~~~
+
+~~~cpp
+//使用模板类
+Stack<int>kernels;
+Stack<string>colonels;
+~~~
+
+~~~cpp
+//多类型参数
+template<typename T1,typename T2>
+...
+~~~
+
+~~~cpp
+//默认类型模板参数
+template<typename T1,typename T2 = int>
+...
+Tp<double>m2;//使用double int
+Tp<double,double>m3;//使用double double
+~~~
+
+
+
+## 非类型（表达式参数）
+
+~~~cpp
+template<typename,int x>
+//可使用整型，枚举，指针，引用
+ArrayTP<double,12>enig;
+//x的值不能修改，也不能取地址
+//存储方式不是堆，而实为自动变量维护的内存栈，执行速度更快
+~~~
+
+## 显式实例化
+
+隐式实例化
+
+~~~cpp
+Arraytp<int,100>*pt;
+pt = new Arrtp<double,100>;
+~~~
+
+显式实例化
+
+~~~cpp
+template class Arraytp<string,30>;
+//虽然没有创建对象，但是这个声明将使用通用模板生成具体化
+~~~
+
+显式具体化
+
+用特定的类型替换模板的泛型的定义
+
+~~~cpp
+//泛型
+template<typename T>
+class SortArray{};
+//具体化
+template<>class SortArray<const char*>{};
+
+SortArray<int>sc;//调用泛型
+SortArray<const char*>sf;//调用具体化
+////////////////////////////////////////////
+//部分具体化
+//泛化
+template<typename T1,typename T2>
+class SortArray{};
+//具体化，<>里留的是没被具体化的参数
+template<typename T1>class SortArray<T1,int>{};
+~~~
+
+成员模板,嵌套模板
+
+~~~cpp
+template <typename T>
+class A{
+public:
+    template<typename N>
+    class B;
+};
+
+template<typename T>
+	template<typename N>
+	class A<T>::B
+    {
+	private:
+        N x;
+    };
+~~~
+
+将模板用作参数
+
+~~~cpp
+template<template<typename T>class Thing>
+class Crab
+{
+private:
+    Thing<int>s1;
+    Thing<double>s2;
+};
+
+//混合使用模板参数和常规参数
+template<template<typename>class Thing,typename U,typename V>
+class Crab
+    {
+private:
+    Thing<U>s1;
+    Thing<V>s2;
+};
+~~~
+
+## 模板类和友元
+
+~~~cpp
+//模板类的非模板友元
+template<class T>
+class RB
+{
+public:
+  friend void LZH();//模板所有实例化的友元  
+  friend void SSR(RB<T>&);//必须显式具体化
+};
+void SSR(RB<int>&hzk){}
+void SSR(RB<double>&hzk){}
+
+//约束模板友元：友元的类型取决于类被实例化时的类型
+//友元函数本身就是模板，类外声明
+template<typename T>void func();
+
+template<typename TT>
+class CS
+{
+public:
+    friend void func<TT>();
+}
+
+template <typename T>
+void func()
+{
+	...
+}
+//非约束类友元，友元的所有具体化都是类的每一个具体化的友元
+//类内声明友元模板函数
+template<typename T>
+class cs
+{
+public:
+    template<typename A,typename B>friend void show(A)
 }
 ~~~
 
