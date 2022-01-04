@@ -1590,3 +1590,458 @@ public:
 }
 ~~~
 
+## 友元类
+
+~~~cpp
+class TV
+{
+public:
+    friend class Remote;
+};
+
+class Remote{};
+~~~
+
+## 特定类的友元函数
+
+~~~cpp
+//循环依赖的解决方法：前向声明
+//提前调用的方法，后置inline定义
+class TV;//前向声明
+class Remote{
+public:
+    void onoff(TV&t);//要想调用tv的方法，TV碧玺在此之前定义，或者后置inline定义
+    void set_chan(TV&t);//引用tv，故tv放在Remote前
+    void onoff(TV&t){t.onoff()};//调用TV的方法，说明TV的声明必须在前
+};
+class TV
+{
+public:
+    void onoff(){...}
+    friend void Remote::set_chan(TV&t);//编译器需要先知道Remote的定义
+};
+
+//后置inline定义
+inline void Remote::onoff(TV&t)
+{
+    t.onoff();
+}
+~~~
+
+## 互相为友元
+
+~~~cpp
+class A
+{
+public:
+    friend class B;
+    void funcA();
+}
+class B
+{
+public:
+    friend class A;
+    void funcB();
+}
+inline void A::funcA(){}
+inline void B::funcB(){}
+~~~
+
+
+
+## 共同的友元
+
+~~~cpp
+class A
+{
+public:
+    friend void func();//名称参数都应该一致
+}
+class B
+{
+public:
+    friend void func();
+}
+inline void func(){}
+~~~
+
+## 嵌套类
+
+~~~cpp
+class A
+{
+private:
+    class B//嵌套类放在private下作为一个成员
+    {
+    //嵌套类的成员应该都设置成public，来让A显式访问
+	};
+};
+~~~
+
+## 模板类的嵌套
+
+~~~cpp
+template<class T>
+class A
+{
+    private:
+    class B
+    {
+        public:
+        T item;
+	};
+};
+~~~
+
+## 异常
+
+c++11中未被捕获的异常（没有匹配的catch块的异常）或者意外异常（不和任何异常规范匹配的异常）将终止程序。
+
+abort()向cerr发送消息——程序异常终止，然后终止程序。
+
+~~~cpp
+#include <cstdlib>
+int main()
+{
+    int a,b;
+    cin>>a>>b;
+	if(a=-b)
+    {
+		std::abort();//防止0作为除数
+    }
+    return a*b/(a+b);
+}
+~~~
+
+返回错误码
+
+~~~cpp
+int main()
+{
+	int a,b,c;
+    cin>>a>>b;
+    if(isFalse(a,b,&c))
+        cout<<c;
+    else cout<<"error";
+    return 0;
+}
+
+bool isFalse(int x,int y,int*z)
+{
+    if(x=-y)
+    {
+		*z = INT_MAX;
+        return false;
+    }
+    else 
+    {
+		*z = x*y/(x+y);
+        return true;
+    }
+}
+~~~
+
+## 异常机制
+
+~~~cpp
+try//标识异常可能被激活的代码块，后跟catch
+throw//抛出异常,让catch捕获
+catch//捕获throw的异常
+
+int main()
+{
+	int x,y,z;
+    cin>>x>>y;
+    try{
+        z = hmean(x,y);
+    }catch(const char*s){ // ()里时要响应的类型，throw的数据赋值给s
+        cout<<s;
+        continue;
+    }
+    return 0;
+}
+
+int hmean(int a,int b)
+{
+	if(a==-b)
+        throw "bad hmean() arguments:a = -b not allowed";
+    return a*b/(a+b);
+}
+~~~
+
+## 将对象用作异常类型
+
+~~~cpp
+class bad_mean1
+{
+private：
+    int m_x,m_y;
+public:
+    bad_mean1(int x,int y):m_x(x),m_y(y){}
+    void mesg();
+};
+class bad_mean2
+{
+private：
+    int m_x,m_y;
+public:
+    bad_mean2(int x,int y):m_x(x),m_y(y){}
+    const char* mesg();
+};
+
+inline void bad_mean1::mesg()
+{
+    cout<<"error_1";
+}
+inline const char* bad_mean2::mesg()
+{
+    return "error_2";
+}
+
+int main()
+{
+    int a,b,c;
+    cin>>a>>b;
+	try{
+        z = hmean(x,y);
+        
+        cout<<gmean(x,y)<<endl;
+    }
+    catch(bad_mean1&bg){
+        bg.mesg();
+        continue;
+    }
+    catch(bad_mean2*bg){
+        bg.mesg();
+        break;
+    }
+    
+}
+
+int hmean(int x, int y)
+{
+	if(x == -y)
+        throw bad_mean1(x,y);
+    return x*y/(x+y);
+}
+
+int gmean(int x,int y)
+{
+    if(x<0||y<0)
+        throw bad_mean2(x,y);
+    return sqrt(a*b);
+}
+~~~
+
+## 栈解退
+
+当try里调用多级函数来throw异常，如果不栈解退，就有函数没有被释放内存
+
+<img src="c++Prime.assets/image-20220104151214727.png" alt="image-20220104151214727" style="zoom:80%;" />
+
+## catch派生类顺序
+
+~~~cpp
+class A{};
+class B:public A{};
+class C:public B{};
+
+void duper(){
+    if(error_1)
+        throw A;
+    if(error_2)
+        throw B;
+    if(error_3)
+        throw C;
+}
+...
+    
+    try{
+        duper();
+    }catch(C&c){//可捕捉C
+        //[statements]
+    }catch(B&b){//可捕捉BC，但C已经被上一条捕获，所以只能捕获B
+        //[statements]
+    }catch(A&a){
+        //[statements]
+    }catch(...){
+        //[statements]
+    }	//省略号表示捕获任何异常
+~~~
+
+catch的顺序必须和派生的顺序相反，因为基引用可以执行派生类的对象。不然catch A的时候如果传入ABC 都能接受
+
+## exception类
+
+可用作异常，也可用作异常的基类
+
+~~~cpp
+#include <exception>
+class bad_hmean:public std::exception
+{
+    ...
+}
+class bad_gmean:public std::exception
+{
+    ...
+}
+
+try{
+    ...
+}catch(std::exception&e){
+    ...
+}
+~~~
+
+c++有很多基于exception类的异常类型
+
+- stdexcept 
+
+  - logic_error：逻辑错误
+    - domain_error域错误
+    - invalid_error无效
+    - length_error长度错误
+    - out_of_bounds越界
+  - runtime_error：运行错误
+    - range_error范围错误
+    - overflow_error溢出
+    - underflow_error下溢
+
+  ~~~cpp
+  //常用捕获顺序
+  try{}
+  catch(out_of_bounds&oe){
+      
+  }catch(logic_error&oe){
+      
+  }catch(exception &oe){
+      
+  }
+  ~~~
+
+  
+
+## bad_alloc & new
+
+~~~cpp
+try{
+    int* pb = new int;
+}catch(bad_alloc & ba){
+	exit(EXIT_FAILURE);
+}
+
+int* pb = new int;
+if(pb == 0){
+	exit(EXIT_FAILURE);
+}
+~~~
+
+## RTTI运行阶段类型识别
+
+dynamic_cast
+
+最常用的RTTI组件，能够回答“是否可以安全的将对象的地址赋给特定类型的指针”
+
+~~~cpp
+class A{};
+class B:public A{};
+class C:public B{};
+
+A * a = new A;
+A * b = new B;
+A * c = new C;
+
+C * p1 = (C*)c;//safe
+C * p2 = (c*)a;//基类转派生类 unsafe
+B * p3 = (C*)c;//safe
+
+//dynamic_cast 的作用就是 判断基类派生类的转换是否安全，安全返回地址，不安全返回空指针
+C * p1 = dynamic_cast<C*>(c);
+//dynamic_cast<Type*>(pt)  通常pt是Type或者是Type的派生类时，转换成功。否则返回空指针（0）
+~~~
+
+~~~cpp
+//dynamic_Cast引用类型，由于没有空指针对应引用值，转换失败将引发bad_cast
+#include <typeinfo>
+try{
+    Superb & rs = dynamic_cast<Superb&>(rg);
+}catch(bad_cast &){
+
+}
+~~~
+
+typeid & type_info
+
+typeid能确定两个对象是否为相同类型
+
+typeid运算符返回一个type_info对象的引用
+
+~~~cpp
+#include <typeinfo>
+typeid(A) == typeid(*B);
+//如果B是一个空指针，将引发bad_typeid
+~~~
+
+经验：如果在if else 里发现了typeid，很可能可以用dynamic_cast和虚函数替换
+
+~~~cpp
+class A{};
+class B:public A{};
+class C:public B{};
+A* aa;
+B* bb;
+C* cc;
+aa = getone();//获得上面某个类
+if(typeid(C) == typeid(*aa))
+{
+    cc = (C*) aa;
+	cc->say();
+}
+else if(typeid(B) == typeid(*aa))
+{
+    bb = (C*)aa;
+    bb->say();
+}
+else aa->say();
+
+/////////////////////////
+A* aa;
+B* bb;
+aa = getone();
+if(bb = dynamic_cast<A*>(aa))//bb如果是A或者A的派生类生成的对象则执行下面的函数
+    bb->say();
+~~~
+
+## 类型转换运算符
+
+~~~cpp
+dynamic_cast<Type>(expression);//允许向上转换 派生类->基类 这样安全
+const_cast<Type>(expression);//const<->volatile 转换
+static_cast<Type>(expression);//当Type和expression的类型可以隐式转换时可用，基类和派生类的相互转换是可以的。整型和枚举类，double和int，float和long的转换都是允许的
+reinterpret_cast<Type>(expression);//用于天生危险的类型转换,可以将指针转换成足以存储指针的整型；不能把函数指针转化为数值指针，反之亦然。
+
+//dynamic_cast
+class A{};
+class B:public A{};
+A* aa;
+B* bb;
+if(bb = dynamic_cast<A*>(bb))
+    ...
+    
+//const_cast
+void func(const int* x)
+{
+	int* y = const_cast<int*>x;//*y 没有const属性
+}
+
+//static_cast
+int x;
+double y = static_cast<double>(x);
+
+//reinterpret_cast
+struct dat{short a;short b;};
+long val = 0xA224B118;
+dat* pd = reinterpret_cast<dat*>(&val);
+cout<<hex<<pd->a;//展示前两个byte的值
+~~~
+
