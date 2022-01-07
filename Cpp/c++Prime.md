@@ -1043,6 +1043,7 @@ Time d = a.operator(b.operator+(c));//ditto
 4. 不能创建新的运算符
 5. 不能重载下面的运算符`sizeof  .  *(指针)  ::  ?:  typeid  const_cast  dynamic_cast  reinterpret_cast  static_cast`
 6. 这些符号只能通过成员函数重载：`=  ()  []  ->`
+6. operator++为前置版本，operator++(int)为后置版本
 
 ## 友元函数
 
@@ -2012,12 +2013,12 @@ if(bb = dynamic_cast<A*>(aa))//bb如果是A或者A的派生类生成的对象则
     bb->say();
 ~~~
 
-## 类型转换运算符
+## 类型转换运算符cast
 
 ~~~cpp
 dynamic_cast<Type>(expression);//允许向上转换 派生类->基类 这样安全
 const_cast<Type>(expression);//const<->volatile 转换
-static_cast<Type>(expression);//当Type和expression的类型可以隐式转换时可用，基类和派生类的相互转换是可以的。整型和枚举类，double和int，float和long的转换都是允许的
+static_cast<Type>(expression);//当Type和expression的类型可以隐式转换时可用，基类和派生类的相互转换是可以的。整型和枚举类，double和int，float和long的转换都是允许的,左值和右值的转换
 reinterpret_cast<Type>(expression);//用于天生危险的类型转换,可以将指针转换成足以存储指针的整型；不能把函数指针转化为数值指针，反之亦然。
 
 //dynamic_cast
@@ -2043,5 +2044,371 @@ struct dat{short a;short b;};
 long val = 0xA224B118;
 dat* pd = reinterpret_cast<dat*>(&val);
 cout<<hex<<pd->a;//展示前两个byte的值
+~~~
+
+## string的功能
+
+find
+
+rfind
+
+find_first_of
+
+find_last_of
+
+find_first_not_of
+
+find_last_not_of
+
+capacity:返回当前字符串的分配内存大小
+
+reserve:请求内存块的最小长度
+
+## 智能指针模板类
+
+由于手动释放new的空间容易出错，所以引入智能指针
+
+可以将new获得的地址赋值给这种指针，当智能指针过期的时候其析构函数自动调用delete释放内存
+
+auto_ptr
+
+shared_ptr
+
+unique_ptr
+
+<img src="c++Prime.assets/63FA7DB153892D8FA8E88368F592D8A9.jpg" alt="img" style="zoom: 33%;" />
+
+~~~cpp
+#include <memory>
+auto_ptr<double>pd(new double);
+unique_ptr<double>pd(new double);
+shared_ptr<double>pd(new double);
+~~~
+
+## 避免指向听一块内存的指针delete多次
+
+~~~cpp
+auto_ptr<string>ps(new string("dfs"));
+auto_ptr<string>vo;
+vo = ps;
+//vo ps 指向同一块内存 ， 当ps vo析构时 分别会delete一次内存块
+~~~
+
+解决方法：
+
+1. 深拷贝，使两个指针指向不同内存，vo指向ps的副本
+
+2. 建立所有权的概念，只有一个指针能拥有该对象，用赋值操作符转换所有权，这是unique auto ptr的策略，unique更为严格
+3. 引用计数，统计指向内存的指针的个数，只有最后一个过期时才delete，这是shared_ptr的策略
+
+~~~cpp
+auto_ptr<string>r (new string("d"));
+auto_ptr<string>a = r; //此时a指向字符串d ，r不再指向d，不能用r访问d，auto会运行时崩溃
+unique_ptr<string>u = r;//此时a指向字符串d ，r不再指向d，不能用r访问d，编译不通过，避免r不指向有效数据的问题
+shared_ptr<string> s = r;//此时s和r都指向d，计数器+1
+~~~
+
+unique_ptr允许源unique_ptr是一个临时右值，即一个不会造成危险的悬挂指针
+
+~~~cpp
+unique_str demo(const char*c)
+{
+	unique_str<string> tmp (new string(c));
+    return tmp;//临时存在，函数结束赋值给s就消失了
+}
+unique_str<string> s = demo("sda");
+~~~
+
+unique_ptr通过移动构造和右值引用来确保安全
+
+auto_ptr  shared_ptr 只能用new ，unique_ptr可以用new，new[]
+
+~~~cpp
+unique_ptr<double[]> s (new double(5));
+~~~
+
+## 迭代器
+
+是一种广义的指针
+
+~~~cpp
+vector<int> scores;
+vector<int>::iterator it = scores.begin();
+//auto it = scores.begin();
+*it = 12;
+it ++;
+
+//for_each
+for(it = scroes.begin();it!=scores.end();++it)
+    Show(*it);
+//equal to
+for_each(scores.begin(),scores.end(),Show);
+
+//eraser
+//it1->it2表示的是[it1,it2)
+scores.eraser(scores.begin(),scores.begin()+1);//删除第一个元素
+
+//insert
+vector<int> old_v;
+vector<int> new_v;
+old_v.insert(old_v.begin(),new_v.begin()+1,new_v.end())//把new的除了首字母以外的字符串插入old首
+    
+//Random_shuffle()
+//随机排列区间的元素
+random_shuffle(scores.begin(),scores.end());
+
+//sort()
+sort(scores.begin(),scores.end(),greater);//第三个参数
+~~~
+
+~~~cpp
+//迭代器种类
+
+//输入迭代器：单通道只读
+//程序用来读取容器的信息
+//单向，可增不可减
+//不能保证第二次遍历容器时的顺序一样
+//不修改容器里的值
+
+//输出迭代器：单通道只写
+//信息从程序存入容器
+//程序能够修改容器的值，却不能读取，类似cout和屏幕的关系
+
+//正向迭代器
+//和输入输出迭代器一样，只能用++遍历容器，但它总会按照相同得顺序遍历，对前面的迭代器解引用仍能得到正确值，使得多次通行算法成为可能
+//可以读写或只读
+int* pirw;//读写
+const int* priw;//只读
+
+//双向迭代器
+//拥有正向迭代器的所有性质
+//支持递增递减操作
+
+//随机访问迭代器
+//拥有双向迭代器的所有性质
+//支持随机访问操作
+~~~
+
+![image-20220105202854938](c++Prime.assets/image-20220105202854938.png)
+
+![image-20220106001219366](c++Prime.assets/image-20220106001219366.png)
+
+![image-20220106001239359](c++Prime.assets/image-20220106001239359.png)
+
+![image-20220106001300979](c++Prime.assets/image-20220106001300979.png)
+
+![image-20220106001315369](c++Prime.assets/image-20220106001315369.png)
+
+![image-20220106001328043](c++Prime.assets/image-20220106001328043.png)
+
+a.at(n) 和 a[n]的区别是  at具有边界检查功能，越界会提示异常
+
+## vector
+
+数组+自动内存管理功能
+
+可以对元素随机访问
+
+可反转容器 ：rbegin() rend() 分别是反转容器的首尾迭代器
+
+## deque
+
+deque支持随机访问，和vector的区别是deque在两端插入删除元素的时间是1
+
+但随机访问，在中间插入删除的线性时间要比vector长
+
+## list
+
+双向链表
+
+list固定时间插入删除，vector固定时间随机访问
+
+可反转容器
+
+![image-20220106003421511](c++Prime.assets/image-20220106003421511.png)
+
+insert将原始区间的副本插入目标地址，splice将原始区间移动到目标地址
+
+## queue
+
+队尾添加，队首删除
+
+![image-20220106004201321](c++Prime.assets/image-20220106004201321.png)
+
+## priority_queue
+
+适配器类，操作和queue相同
+
+区别是:priority_queue的最大元素被移到队首，底层是vector
+
+## stack
+
+适配器类，底层默认为vector
+
+顶部插入删除
+
+![image-20220106004748493](c++Prime.assets/image-20220106004748493.png)
+
+## 关联容器
+
+- set
+
+关联集合，可反转，可排序，键是唯一的，不能存储多个相同的值
+
+~~~cpp
+set<string,less<string>>A;
+set<string,less<string>>B;
+set<string,less<string>>C;
+//求集合并集
+set_union(A.begin(),A.end(),B.begin(),B.end(),insert_iterator<set<string>>(C,C.begin());
+//求集合交集
+set_intersection()
+//求集合的差
+set_difference()
+//lower_bound
+	//指向集合中第一个不小于键参数的成员
+//upper_bound
+	//指向集合中第一个大于键参数的成员
+~~~
+
+- multiset 
+
+
+
+- map
+
+
+
+- multimap
+
+可反转，经过排序的关联容器
+
+~~~cpp
+multimap<int,string>codes;//键值为int，存储类型为string
+
+pair<int,string>item(213,"shandong");
+cout<<item.first<<item.second;//213 shandong
+codes.insert(item);
+
+codes.insert(pair<int,string>(213,"shandong"));//匿名对象
+
+//count
+//计数拥有该键参数的成员数目
+
+//lower_bound
+	//指向集合中第一个不小于键参数的成员的迭代器
+//upper_bound
+	//指向集合中第一个大于键参数的成员的迭代器
+
+//equal_range
+//键值作为参数，返回两个迭代器，他们表示的区间和键值匹配
+auto range = equal_range(718);//键值为718的迭代器
+//pair<multimap<int,string>>::iterator,multimap<int,string>::iterator >range = codes.equal_range(718);
+for(auto it = range.first();it!=range.second;++it)
+{
+	cout<<(*it).second;
+}
+~~~
+
+## 函数对象
+
+又称函数符
+
+operator()
+
+<img src="c++Prime.assets/image-20220106141640102.png" alt="image-20220106141640102" style="zoom:80%;" />
+
+![image-20220106141706272](c++Prime.assets/image-20220106141706272.png)
+
+## cout
+
+~~~cpp
+string s = "ds";
+cout<<s;
+
+cout.put('d').put('s');
+
+cout.write(s,2);
+
+//三种输出方式等价
+
+//输出的进制
+dec 10
+hex 16
+oct  8
+cout<<dec;
+hex(cout);
+//字符宽度
+cout.width(12);//仅影响接下来一个对象
+ 
+//setf限定格式
+//unsetf取消格式
+~~~
+
+![image-20220106165942775](c++Prime.assets/image-20220106165942775.png)
+
+![image-20220106181521132](c++Prime.assets/image-20220106181521132.png)
+
+![image-20220106182138387](c++Prime.assets/image-20220106182138387.png)
+
+![image-20220106182155361](c++Prime.assets/image-20220106182155361.png)
+
+~~~cpp
+#include<iomainip>
+setprecision()//设置精度
+    setfill()//填充字符
+    setw()//设置字符宽度
+~~~
+
+## cin
+
+流状态
+
+![image-20220106191632959](c++Prime.assets/image-20220106191632959.png)
+
+~~~cpp
+//单字符输入，不跳过空格 cin>>会跳过空格的输入
+get(char&)//返回cin
+get(void)//返回int
+char a,b,c;
+cin.get(a).get(b)>>c;//ab可以为空格 c不可以
+char ch;
+ch = gin.get()>>ch;//error .get()返回int不能再接cin类型
+    
+//读取整行
+get(char*,int)//只有两个参数将换行符当作分界
+get(char*,int,char) //int是存储字符的大小，一般比字符串大一，char是分界的符号
+getline(char*,int,char)
+ignore(int,char)//读取忽略int个参数，或者遇到char为止
+~~~
+
+| 特征                 | cin.get(ch)       | ch = cin.get() |
+| -------------------- | ----------------- | -------------- |
+| 传输输入字符的方法   | 赋值给ch          | 赋值给ch       |
+| 函数返回值           | 指向istream的引用 | int值          |
+| 达到文件尾部的返回值 | false             | EOF            |
+
+单字符输入选择：
+
+- 需要跳过空格？
+  - 需要：>>
+  - 不需要：get(char&),get(void)
+
+~~~cpp
+//read
+char gross[144];
+char score[20];
+cin.read(gross,144);//读取指定数目的字节，存在指定位置
+cin.read(gross,144).read(score,20);
+
+//peek
+//查看下一个输入字符
+
+//gcount
+//返回最后一个非格式化抽取的（>>）字符数
+
+//putback()
+//将下一个读取的字符插入到输入字符串中
+
 ~~~
 
