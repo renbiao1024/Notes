@@ -2443,4 +2443,16 @@ cin.read(gross,144).read(score,20);
 
 ~~~
 
-## overrid
+## 进程地址空间
+
+低地址到高地址依次为代码区，全局区（已初始化全局区data，未初始化全局区bss），堆区，共享区，栈区，命令行参数&环境变量，内核区
+
+## resize && reserve
+
+~~~cpp
+//resize改变元素数量 ，reserve改变容器容量
+resize(len)
+    //len>capacity：size,capacity均扩大到len
+    //len<=capacity：size扩大到len，capacity不变
+~~~
+
