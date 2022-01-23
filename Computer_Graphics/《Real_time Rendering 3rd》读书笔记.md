@@ -339,3 +339,151 @@
 # BRDF双向反射分布函数
 
 - 反映了入射光经过某个表面反射后如何在各个出射方向上分布
+
+## 辐射度量学概念
+
+![img](《Real_time Rendering 3rd》读书笔记.assets/F9DCA1246B137304D5E980AFEC63201B.png)
+
+## BRDF的定义
+
+$$
+f(l,v) = dL_0(v)/dE(l)
+$$
+
+- 出射辐射率的微分和入射辐照度的微分之比
+
+- 描述了入射光线经过某个表面反射后如何在各个出射方向上分布，给定了入射方向和出射方向能量的相对量
+
+- 非微分形式
+
+$$
+f(l,v)=L_0(v)/E(l)\overline\cos{\theta_i}
+$$
+
+##  BRDF和着色方程
+
+$$
+L_0(v)=\sum_{k=1}^{n}{f(l_k,v)\otimes E_{L_k}\cos{\theta_{i_k}}}
+$$
+
+## BRDF可视化表示
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/DD70377621EC612BEB74828E62A06ACA.png" alt="img" style="zoom:50%;" />
+
+- 左图表示漫反射，右图表示镜面反射
+
+## BRDF性质
+
+- 可逆性：光路可逆
+
+$$
+f(l,v)=f(v,l)
+$$
+
+- 能量守恒：入射光总能量 = 出射光总能量
+
+$$
+Q_{入射}=Q_{反射}+Q_{吸收}+Q_{透射}
+$$
+
+- 线性（叠加）：一点的反射量 = 各BRDF反射量之和
+
+## BRDF模型的分类
+
+- 经验模型：用于反射快速计算的近似，不一定满足物理定律
+
+  - Phong
+
+  - Blinn-Phong
+  - Lambert漫反射
+  - 快速Phong
+  - 可逆Phong
+
+- 数据驱动模型：记录大量的BRDF模型，通过查表直接套用渲染结果
+
+  - A Data-Driven Reflectance Model
+
+- 基于物理的模型：
+
+  - Cook-Torrance
+
+  - Ward
+
+## BRDF的分类
+
+- 各向同性BRDF
+  - 反射不受与给定表面法向量夹角的约束
+  - 随机表面微结构
+
+- 各向异性BRDF
+  - 反射比随着与某个给定的表面法向量的夹角的变化而变化
+  - 图案的表面微结构
+  - 金属丝，绸缎，毛发等
+
+## 基于物理的BRDF 前置知识
+
+### 次表面散射（SSS）
+
+光摄入半透明材质在内部发生散射，最后射出物体的过程
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/253FEEE504310374A283BC77FCAF5EE5.png" alt="img" style="zoom:50%;" />
+
+### 菲涅尔反射
+
+- 菲涅尔方程：用来描述光在两种不同介质中传播的反射折射光学方程
+
+- 菲涅尔反射：光入射到两种不同介质的分界时，一部分光被反射，反射光强会根据我们的观察角度变化
+- 理解：垂直看向水池，反射较弱，可见池底，接近平行水池表面的高光反射会变得非常强，不可见池底
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/0C741F12CE996969641D06939CB28915.png" alt="img" style="zoom: 50%;" />
+
+### 法线分布函数(NDF)
+
+$$
+D(h)=\frac{\alpha^2}{\pi((n\sdot h)^2(\alpha^2-1)+1)^2}
+$$
+
+- 输入一个朝向h，NDF返回朝向h的微表面占总面积的比例
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/1D95D0501A5570039BD9F542947C4BEE.png" alt="img" style="zoom:50%;" />
+
+- 微观的不规则表面造成光的漫反射，产生宏观上模糊的反射
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/2B6CBD64FAA1894E62214B7B23530ABF.png" alt="img" style="zoom: 33%;" />
+
+## BRDF常见模型
+
+- Cook-Torrance BRDF模型
+  - 又称Cook-Torrance微表面着色模型
+
+$$
+f(l,v)=\frac{F(l,h)G(l,v,h)D(h)}{4(n\sdot h)(n\sdot v)},其中\left \{ 
+\begin{array}{c}
+F 表示菲涅尔反射函数\\ 
+G表示 阴影遮罩函数\\ 
+D 表示法线分布函数
+\end{array}
+\right.
+$$
+
+- Ward BRDF模型
+
+  - 可以处理各向异性效果
+
+  - 但没有考虑菲涅尔因子和几何衰减因子
+
+$$
+\rho_{bd\space iso}(\theta_i,\phi_i,\theta_r,\phi_r)=\frac{\rho_d}{\pi}+\rho_s\sdot\frac{1}{\sqrt{\cos{\theta_i}\cos{\theta_r}}}\sdot \frac{exp[-tan^2\delta /\alpha^2]}{4\pi\alpha^2}
+$$
+
+## BRDF引申
+
+- BSSRDF：双向表面散反射分布函数
+  - 描述了沿入射方向从物体表面的一点到另外一点，最后顺着出射方向出去的光线相对量
+- SBRDF：空间BRDF
+  - 捕获基于空间位置BRDF变化的函数
+- BTDF：双向透射分布函数
+  - 处理表面透射分量
+
+- BSDF：双向散射分布函数
+  - 处理表面散射分量
