@@ -704,3 +704,261 @@ $$
 
 # 游戏开发中基于图像的渲染技术
 
+## 渲染谱
+
+- 细节层次技术LOD：根据物体和相机的距离改变物体的质量，可以加快场景渲染速度
+- 渲染谱：从简单到复杂，由二维图像到三维模型，从外观特征到物理渲染
+
+![img](《Real_time Rendering 3rd》读书笔记.assets/7174D3B4903ED5AAFBB379AEF3204B4D.png)
+
+## 固定视角的渲染
+
+- 将复杂几何模型转换成可以复用得简单buffer来节省渲染时间
+
+- vr的360度全景图允许摄像机随意转动和倾斜
+
+## 天空盒
+
+- 远景在你移动的时候不会有很大变化
+
+## 环境贴图
+
+- 放置在围绕着观察者的网格上，足够大包含所有场景的对象
+- 移动会破坏真实感
+
+## 光场渲染
+
+- 光场：空间任意点发出任意方向的光的集合
+- 光场渲染：由相机阵列或者一个相机按路径移动，把场景拍摄下来输出为图集。对于给定的新视点，找出几个近邻的采样点插值就能得到该视点的视图
+
+## 精灵和层
+
+- 精灵：再屏幕上移动的图像
+- 可通过一系列精灵生成动画
+- 将精灵放在不同的层可以做远近感觉
+
+## 公告板
+
+- 公告板：根据观察方向确定多边形面朝方向的技术
+- 适合表示烟雾火焰爆炸等效果
+- 三种类型：
+  - 对齐屏幕的公告板：n是镜头法线的反方向，u是镜头的上
+  - 面向世界的公告板：r=u*n,u=r\*n
+  - 轴向公告板：n是镜头法线的反方向，n'=u*n为最终可用的n
+
+![img](《Real_time Rendering 3rd》读书笔记.assets/D9EB2C0116099A422E2DFEF36171FF0C.png)
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/55951776E9182A5A359B664182740ACC.png" alt="img" style="zoom:50%;" />
+
+## 粒子系统
+
+- 微小物体的集合，可按照某种算法运动
+
+## 替代物
+
+- 将一个复杂物绘制到一幅图像纹理上，再映射到公告板上
+
+## 公告板云
+
+- 一个复杂模型通过一系列公告板集合互相交叉重叠进行表示
+
+## 图像处理
+
+- 后期处理：颜色矫正，镜头炫光，色调映射，景深，运动模糊
+
+- 颜色校正：转换像素的颜色，可用于风格化画面
+- 色调映射：将图片的亮度范围映射到计算机屏幕的亮度范围
+- 镜头炫光和泛光：
+  - 炫光：圆形毛绒彩虹
+  - 泛光：光源附近的辉光
+- 景深：焦点范围，焦点前后清晰的距离称为景深
+- 运动模糊：时间上的抗锯齿
+- 体渲染：用于显示离散三维采样数据集的二维投影技术：体积云体积雾
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/488FCB57E00C46B29475D5F46C5336AB.png" alt="img" style="zoom:50%;" />
+
+# NRP
+
+## 非真实感渲染NPR
+
+### 卡通渲染
+
+- 三要素：
+  - 锐利的阴影
+  - 少有或没有高亮的点
+  - 对物体轮廓描边
+
+### 轮廓描边的渲染方法
+
+- 基于视点方向的描边
+  - 视点方向和法相方向垂直的地方认为是轮廓（点乘接近0的地方
+
+- 基于过程几何方法的描边
+  - 先渲染正向表面，再渲染背向表面，从而使轮廓边缘可见
+  - 渲染北面的边界线，使用偏置技术让这条线恰好位于正表面之前
+
+![img](《Real_time Rendering 3rd》读书笔记.assets/A07A42FBA65D404A9B62096CFF7CEBAF.png)
+
+- 基于图像处理的描边
+
+  - 寻找z缓冲区不连续的地方
+
+- 基于轮廓边缘检测的描边
+
+  - 检测**朝向相反的相邻三角形的交接处**绘制
+
+  - $$
+    (n_0\sdot v>0)!=(n_1\sdot v>0)\\n是三角面的法线，v是实现方向的向量
+    $$
+
+- 
+
+- 混合轮廓描边
+  - 结合图像处理方法和几何要素方法
+    - 找到轮廓边缘，赋予id
+    - 根据id找到可见的轮廓，进行重叠性检测
+    - 连接起来形成平滑笔触路径
+    - 风格化渲染
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/8497CEDF0EC0E7A9F8E86688FDD9309A.png" alt="img" style="zoom:33%;" />
+
+## 其他风格的NPR渲染技术
+
+- 纹理调色板
+  - 根据反射着色项的不同应用不同的纹理
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/6E7EC2EFDFC8D4EBE01F07EEF9A013FE.png" alt="img" style="zoom: 50%;" />
+
+- 色调艺术图TAM
+  - 自动生成纹理，应用到物体表面
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/E7F1AC145C2F1C76BBD14330FF423E92.png" alt="img" style="zoom:50%;" />
+
+- 嫁接
+  - 将几何或者贴花应用到物体表面
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/9A0E7B573A33D7FA2A1D156F734E4435.png" alt="img" style="zoom:50%;" />
+
+- 水彩NRP
+  - MNRP
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/7C1E7D5F8C7072FE5EE63506DB14A995.png" alt="img" style="zoom:50%;" />
+
+# 游戏开发中的渲染加速算法
+
+## 空间数据结构
+
+- 将几何体组织在空间中的一系列数据结构
+- 用于实时渲染的加速查询，如场景管理，裁剪算法，相交测试，光线追踪，碰撞检测等
+
+### 常见的空间数据结构
+
+- 层次包围盒BVH：**几何划分**
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/4CB242B6206C6E92B5E55B6B2065EE7F.png" alt="img" style="zoom: 50%;" />
+
+- 二元**空间分割**树BSP：左子树存当前分割面前面的物体，右子树存当前分割面后面的物体
+  - 分类：
+    - 轴对齐BSP（**k-d 树**）：将场景用aabb包围盒包裹然后分别沿xyz轴（三个方向各分割一次是一个周期）递归划分成更小的盒子，直到盒子内部的物体数量低于用户设定值<img src="《Real_time Rendering 3rd》读书笔记.assets/8708D00143BF8AB826B22205106613FC.png" alt="img" style="zoom:50%;" />
+    - 多边形对齐BSP树：创建耗时，计算简单<img src="《Real_time Rendering 3rd》读书笔记.assets/DA1496AE2C90900F48F9B52B191A6FF5.png" alt="img" style="zoom:50%;" />
+
+
+
+- 平面方程
+
+$$
+Ax+By+Cz+D=0,\\代入点(x_0,y_0,z_0),\\if\space D>0:forward\\if\space D=0:in\\if\space D<0:behind
+$$
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/9700834338477456D4B596B0B31D84F5.png" alt="img" style="zoom:50%;" />
+
+~~~cpp
+\\遍历bsp
+traverse_tree(bsp_tree*tree,point eye)
+{
+    location = tree->find_location(eye);
+    if(tree->empty())	return;
+    if(location>0)
+    {
+        traverse_tree(tree->back,eye);
+        display(tree->polygon_list);
+        traverse_tree(tree->front,eye);
+    }
+    else if(location<0)
+    {
+        traverse_tree(tree->front,eye);
+        display(tree->polygon_list);
+        traverse_tree(tree->back,eye);
+    }
+    else
+    {
+        traverse_tree(tree->front,eye);
+        traverse_tree(tree->back,eye);
+    }
+}
+~~~
+
+- 四叉树，八叉树
+
+  - <img src="《Real_time Rendering 3rd》读书笔记.assets/6D3CDCB8E4E0D23C47FF1D615D865C26.png" alt="img" style="zoom: 50%;" />
+
+  - 松散八叉树：选择长方体的大小比较宽松：k=1.5就是把每个长方体放大50%，稍微移动来区分它们
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/2AF035728E5E3887761FA0A074F0CA67.png" alt="img" style="zoom:50%;" />
+
+- 场景图
+  - 组织管理三维场景的数据结构，是一个有向无环图，父节点发生变换子节点也变换
+  - ![image-20220206221329850](《Real_time Rendering 3rd》读书笔记.assets/image-20220206221329850.png)
+
+## 裁剪技术
+
+- 背面裁剪
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/E248E222F8165AC9756F6A32CAA54D4B.png" alt="img" style="zoom:50%;" />
+
+- 视锥裁剪
+  - 结合bvh先序遍历
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/73E1879E5359D57798855EB1F11FF848.png" alt="img" style="zoom: 67%;" />
+
+- 遮挡裁剪
+  - 通过查看zbuffer裁剪不再buffer的物品
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/2B0AB596C9B4ED8F286727C4A6B9C0C4.png" alt="img" style="zoom:50%;" />
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/CF4CD56CDE252E574DE8A28115788EC8.png" alt="img" style="zoom:50%;" />
+
+~~~cpp
+Or = empty;
+P = empty;
+for rach object g in G{
+    if(isOccluded(g,Or))
+        skip(g);
+    else{
+        Render(g);
+        Add(g,P);
+        if(LargeEnough(P))
+        {
+			update(Or,P);
+            P=empty;
+        }
+    }
+}
+~~~
+
+
+
+- 对比上面三种裁剪
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/C6968F836FA20B8FFFB2A27A575E812D.png" alt="img" style="zoom:50%;" />
+
+- 入口裁剪
+  - 在入口处减小视锥，使其和入口紧密贴合
+
+<img src="《Real_time Rendering 3rd》读书笔记.assets/45F7321CF1177F81C7B46D61C39A6521.png" alt="img" style="zoom:50%;" />
+
+- 细节裁剪
+  - 当视点运动时，场景的微小细节对渲染图贡献甚微，此时可以裁剪这些细节。
+
+## 遮挡剔除算法
+
