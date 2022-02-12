@@ -181,7 +181,7 @@ public:
 
 - 如果类内有reference，const成员，生成赋值操作符会修改他们，不合法。编译器就不会自动生出这个操作符
 
-# 若不想使用编译器自动生成的函数，就该明确拒绝
+# 条款06：若不想使用编译器自动生成的函数，就该明确拒绝
 
 **为了驳回编译器自动提供的机能，可将相应的成员函数声明为private并不予实现，或者继承自这样的base class**
 
@@ -214,7 +214,7 @@ class Son :private Uncopyable{
 };
 ~~~
 
-# 为多态基类声明virtual析构函数
+# 条款07：为多态基类声明virtual析构函数
 
 **带多态性质的基类应该声明一个虚析构函数  **
 
@@ -238,3 +238,303 @@ delete ptk;
 ~~~
 
 - 当类里没有virtual，通常意味着他不被意图用作一个基类。在非基类给析构函数使用virtual是个馊主意，增加了虚表指针和虚表的开销，和其它语言的移植性也会降低。通常类内至少有一个virtual函数时才将析构函数声明为virtual
+
+# 条款08：别让异常逃离析构函数
+
+**析构函数绝对不要吐出异常。如果一个被析构函数调用的函数可能可能抛出异常，析构函数应该捕捉任何异常，然后吞下他们或者结束程序**
+
+**如果客户端需要对某个操作函数运行期间抛出的异常作出反应，那么class应该提供一个普通函数（而非析构函数）执行该操作**
+
+- 创建一个管理资源的类
+
+~~~cpp
+class DBConnection{
+public:
+    static DBConnection create();
+    void close();
+};
+
+class DBConn{
+public:
+    ~DBConn{
+        if(!closed)
+        {
+            try{db.close();}
+            catch(...)
+            {
+                //方法1：什么都不写，表示遇到异常就吞掉
+
+                //方法2：
+                std::abort();//如果close抛出异常就结束
+            }
+        }
+
+    }
+    
+    void close()//将close的责任从DBConn的析构函数转移到普通函数，析构函数是一个双重保险
+    {
+		db.close();
+        closed = true;
+    }
+private:
+    DBConnection db;
+    bool closed;
+};
+
+DBConn dbc (DBConnection::create());//建立一个DBConnection对象交给DBConn管理
+~~~
+
+# 条款09：绝不在构造和析构的过程中调用virtual函数
+
+**在构造和析构期间不要调用virtual函数，因为这类调用从不下降至派生类**
+
+- 在构造期间，虚函数不会被视为虚函数
+- 在析构期间，B的成员变量就成为未定义的状态，所以调用A的virtual函数
+- 信息不能由基类向下传递，但可以由派生类向上传递
+
+~~~cpp
+//错误示例
+class A
+{
+public:
+    A(){
+        vA();
+    }
+    
+    virtual void vA(){}
+};
+
+class B:public A{
+public:
+    vA(){}
+};
+
+B b;//构造B的时候先构造基类A，但A的构造调用了虚函数，此时B还没构造，所以调用的是A的vA
+
+//正确实例
+class A
+{
+public:
+    A(const string&s){
+        vA();
+    }
+    //非虚函数
+    void vA(){}
+};
+
+class B:public A{
+public:
+    B():A(s){}//通过B的构造函数给A传递参数
+private:
+    string s;
+};
+~~~
+
+# 条款10：令operator=返回一个reference to *this
+
+- 为了实现连续赋值
+
+~~~cpp
+class Widget
+{
+pubic:
+    Widget& operator=(const Widget&rhs)
+    {
+        ...
+        return *this;
+    }
+};
+~~~
+
+- 也适用于+=，-=，*=等赋值相关的符号
+
+# 条款11：在operator=中处理“自我赋值”
+
+**确保当对象自我赋值额时候operator=有良好的行为，其技术包括“来源对象”“目标对象”的地址，语句顺序以及”copy and swap“**
+
+**确保函数操作多个对象，而多个对象是同一个对象时的行为仍然正确**
+
+~~~CPP
+class A{};
+class B{
+private:
+    A*a;
+};
+//方法1
+B::B& operator=(const B&rhs)
+    {
+        //自我测试
+        if(this == &rhs) return *this;
+        
+        delete a;//没有自我检测时，如果a和rhs指向同一个对象，那么delete a 也会把rhs的a删除，导致rhs指向nullptr
+        a = new A(*rhs.a);
+        return *this;
+    }
+//方法2（better）,如果new的时候抛出异常，也不会删除原来的a
+B::B& operator=(const B&rhs)
+    {
+        A* tmp = a;
+        a = new A(*rhs.a);
+    	delete tmp;
+        return *this;
+    }
+
+//copy and swap技术
+//方法3，直观
+void swap(B&rhs);//交换*this和rhs
+B::B& operator(const B&rhs)
+{
+	B tmp(rhs);
+    swap(tmp);
+    return *this;
+}
+
+//方法4：和方法三一样，但是效率更高
+B::B& operator(const B rhs)//传值相当于	B tmp(rhs); 构建了一个副本
+{
+    swap(rhs);
+    return *this;
+}
+~~~
+
+# 条款12：复制对象时勿忘其每一个成分
+
+**Copying函数应该确保复制“对象内的所有成员变量”及“所有base class成分”**
+
+**不要尝试用一个copying函数调用另一个copying函数，应该将共同部分放到第三个函数里，由两个函数共同调用**
+
+- 复制每一个成分包括
+  - 赋值所有的local成员变量
+  - 调用所有的父类复制函数
+
+~~~cpp
+class A
+{
+public:
+	A(const A& rhs):name(rhs.name),age(rhs.age){}
+    
+    A& operator=(const A& rhs)
+    {
+        name = rhs.name;
+        age = rhs.age;
+        return *this;
+    }
+private:
+    string name;
+    int age;
+};
+
+class B :public A
+{
+private:
+    int priority;
+    
+public:
+    B(const B& rhs):A(rhs),priority(rhs.priority){}//派生类的构造函数需要调用父类的构造函数 并且要为自身的变量初始化
+    B& operator=(const B&rhs){
+        A::operator=(rhs);
+        priority = rhs.priority;
+        return *this;
+    }
+};
+~~~
+
+- 复制构造函数和复制操作符不能互相调用，如果有重复的代码可以另外书写一个init函数，让两个函数调用
+
+# 条款13：以对象管理资源
+
+**为防止资源泄露，请用RAII对象（资源获取即初始化），他们在构造函数中获得资源并在析构函数中释放资源**
+
+**两个常用的RAII class是auto_ptr和 shared_ptr,前者会使被复制物指向null，后者的copy行为较佳**
+
+- 手动释放资源可能引发内存泄漏，可以自定义资源管理类
+
+- 使用智能指针来避免资源泄露的可能性
+
+~~~cpp
+class A{
+public:
+    A* createA();
+};
+
+
+std::auto_ptr<A>p1(createA());//获取资源后立刻放进管理对象，管理对象运用析构函数确保资源释放，当auto_ptr被销毁时，会自动删除它的所指之物，但要注意不能用多个autoptr指向同一个对象，防止多次释放。
+
+//Autoptr的特殊性质：当复制操作后，新的对象会代替原来的对象，成为获得资源的唯一拥有权
+std:;auto_ptr<A>p2(p1);//现在p2指向对象，p1指向null
+p1 = p2;//现在p1指向对象，p2指向null
+~~~
+
+- RCSP引用计数型智能指针
+  - 追踪有多少个对象指向某笔资源，无人指向时自动删除该资源
+  - 无法打破环状引用
+
+~~~cpp
+std::tr1::shared_ptr<A>p3(createA());//p3指向createA返回值
+std::tr1::shared_ptr<A>p4(p3);//p4 指向 p3 的对象
+p3 = p4;//同上，无变化
+//当p3 p4 都销毁 所指对象才销毁
+~~~
+
+- auto_ptr,shared_ptr不能处理数组，可以用boost::scoped_array，boost::shared_array类
+
+# 条款14：在资源管理类中小心copying行为
+
+**复制RAII对象必须一并复制他所管理的资源，所以资源的copying行为决定了RAII对象的copying行为**
+
+**常见的RAIIcopying行为有“抑制copying”“引用计数法”“所有权转移”“深度拷贝”**
+
+- auto_ptr和 shared_ptr适合处理堆上的资源，当遇到其他资源，需要自己建立资源管理类
+
+~~~cpp
+void lock(Mutex*pm);
+void unlock(Mutex*pm);
+
+class Lock{
+public:
+    explicit Lock(Mutex*pm):mutexPtr(pm){
+        lock(mutexPtr);
+    }
+    ~Lock(){
+        unlock(mutexPtr);
+    }
+private:
+    Mutex*mutexPtr;
+};
+
+Mutex n;
+{
+    Lock m1(&m);
+    ...
+        //在区块末自动调用析构函数解锁
+}
+~~~
+
+- 面对RAII对象被复制的选择
+
+  - 禁止复制
+
+  ~~~cpp
+  class Lock:private Uncopyable{//条款6
+    ...  
+  };
+  ~~~
+
+  - 对底层资源祭出“引用计数法”
+
+  ~~~cpp
+  //shared_ptr的删除器（第二参数）当引用计数为0时调用
+  class Lock{
+  public:
+      explicit Lock(Mutex*pm):mutexPtr(pm,unlock)
+      {
+          lock(mutexPtr.get());
+      }
+      //使用缺省析构函数
+  private:
+      std::tr1::shared_ptr<Mutex>mutexPtr;
+  };
+  ~~~
+
+  - 复制底部资源：深拷贝
+  - 转移底部资源的拥有权：拥有权从被复制物转移到目标物
