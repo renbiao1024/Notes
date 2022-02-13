@@ -751,3 +751,150 @@ namespace WBS{
 
 # 条款24：若所有参数皆需要类型转换，请为此采用non-member函数
 
+**需要为某个函数的所有参数（包括被this指针所指的那个隐喻参数）进行类型转换，那么这个函数必须是一个non-member**
+
+~~~cpp
+class A{
+public:
+    explicit const A operator*(const A&rhs)const;//1，只允许显式转换
+    
+    const A operator*(const A&rhs)const;//2，只有rhs一个参数可以隐式转换
+};
+
+const A operator*(const A&lhs,const A&rhs)const;//3，两个参数都可以隐式转换
+
+A a(1);
+A b = a * 2;//A b = a.operator*(2);//2(隐式转换),3可通过编译
+A c = 2 * a;//A c = 2.operator*(a) //3(隐式转换)可通过编译
+//所以应该使用3方法
+~~~
+
+# 条款25：考虑写一个不抛出异常的swap函数
+
+**当std::swap对你的类效率不高时，提供一个swap成员函数，并确定这个函数不抛出异常**
+
+**如果提供一个member swap函数，也该提供一个non-member swap来调用之。对于classes，也请特化std::swap**
+
+**调用swap时应针对std::swap使用using声明式，然后调用swap不带任何命名空间修饰**
+
+**为“用户自定义类型”进行std::templates 全特化是好的，但千万别尝试在std内家入某些对std而言全新的东西**
+
+~~~cpp
+namespace WS{
+    template <typename T>
+    class Widget{
+    public:
+        void swap(Widget& other)
+        {
+            using std::swap;//曝光std swap给当前函数
+            swap(pImpl,other.pImpl);//当前命名空间有swap就调用当前的，否则调用std的
+        }
+    private:
+        WidgetImpl*pImpl;
+    };
+
+    template<typename T>//特化
+    void swap<Widget>(Widget<T>& a,Widget<T>& b)
+    {
+        a.swap(b);
+    }
+}
+~~~
+
+- 提供一个public swap成员函数，让他高效置换class类型的两个对象值
+- 在class所在的namepace提供一个non-member swap，并令它调用上述swap成员函数
+- 如果正在编写一个类，为你的类特化std::swap，并让他调用你的swap成员函数
+
+# 条款26：尽可能延后变量定义式出现的时间
+
+**尽可能延迟变量定义式的出现，这样可以增加程序的清晰度并改善程序效率**
+
+- 定义延迟到首次需要使用他，甚至到首次初始化他
+
+~~~cpp
+string passWord(const string&key)
+{
+    //string password;
+	if(key.size() < MinLength)
+        throw logic_error("Password is too short");
+    string password;//不定义在前面的原因是，只有当if不执行才需要用到，提前创建可能用不到，浪费了构造和析构的时间
+    return password;
+}
+~~~
+
+# 条款27：尽量少做转型动作
+
+**如果可以，尽量避免转型，特别是在注重效率的代码中避免dynamic_casts，如果有个涉及需要转型动作，试着发展无需转型的代替设计**
+
+**如果转型是必要的，试着将他隐藏在某个函数背后。客户端可以随时调用该函数，而不需要将转型放在他们自己的代码**
+
+**宁可使用新式转型，不要使用旧时转型。前者易于辨识且有分门别类地掌职**
+
+- 旧式转型
+  - (T)expression:将expression转成T
+  - T(expression):将expression转成T
+- 新式转型
+  - const_cast<T>(expression)：常用于常量性移除，只有这个转型可以做到这一点
+  - dynamic_cast<T>(expression)：常用于安全向下转型
+  - reinterpret_cast<T>(expression)：意图执行低级转型（point->int），实际动作可能取决于编译器
+  - static_cast<T>(expression)：用来强迫隐式转换
+
+~~~cpp
+class Window{
+public:
+    virtual void onResize(){}
+};
+
+class SpecialWindow:public Window{
+public:
+    virtual void onResize(){
+        //static_cast<Window>(*this).onResize();
+        //这种方法会调用父类的副本执行onResize()，在执行自己的onResize(),最终导致父类实际没变，子类发生改变，半残状态
+        
+        //正确做法
+        Window::onResize();//在本体调用父类的onResize
+    }
+};
+~~~
+
+- 使用容器并在其中存储直接指向派生类对象的指针，如此便消除了“通过基类接口处理对象”的需要
+
+~~~cpp
+class Window{};
+class SpecialWindow:public window{
+public:
+    void blink();
+};
+
+typedef vector<tr1::shared_ptr<SpecialWindow>> VPSW;
+VSPW winPtrs;
+
+for(VPSW::iterator iter = winPtrs.begin();iter != winPtrs.end(); ++ iter)
+{
+    (*iter)->blink();
+}
+~~~
+
+- 可以“通过基类接口处理对象”的派生类
+
+~~~cpp
+class Window{
+public:
+    virtual void blink(){}
+};
+class SpecialWindow:public window{
+public:
+    virtual void blink(){}
+};
+
+typedef vector<tr1::shared_ptr<Window>> VPW;
+VPW winPtrs;
+
+for(VPSW::iterator iter = winPtrs.begin();iter != winPtrs.end(); ++ iter)
+{
+    (*iter)->blink();
+}
+~~~
+
+# 条款28：避免返回handles指向对象内部成分
+
