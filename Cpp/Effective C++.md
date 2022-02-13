@@ -504,7 +504,7 @@ private:
 
 Mutex n;
 {
-    Lock m1(&m);
+    Lock m1(&n);
     ...
         //在区块末自动调用析构函数解锁
 }
@@ -897,4 +897,76 @@ for(VPSW::iterator iter = winPtrs.begin();iter != winPtrs.end(); ++ iter)
 ~~~
 
 # 条款28：避免返回handles指向对象内部成分
+
+**避免返回handles（指针，引用，迭代器）指向对象内部。防止破坏封装性，帮助const成员函数的行为像个const，并将发生“虚吊handles”的可能性降到最低**
+
+- 指针，引用，迭代器统统都是handles,返回一个“代表对象内部数据”的handle，会有降低封装性的风险
+
+~~~cpp
+class Point{
+public:
+    Point(int x,int y);
+    
+    void setX(int val);
+    void setY(int val);
+};
+
+struct PectData{
+    Point ul;
+    Point lr;
+};
+
+class Rectangle{
+public:
+    Point& upperLeft()const{return pData->ul;}//指向对象内部，通过这个引用可以修改ul
+    const Point& lowerRight()const{return pData->lr;}//const引用不可修改
+    
+private:
+    tr1::shared_ptr<RectData>pData;
+};
+
+Point coord1(0,0);
+Point coord2(100,100);
+const Rectangle rec(coord1,coord2);
+rec.upperLeft().setX(50);//访问并修改了内部参数
+rec.lowerRight().setX(50);//不能修改内部参数
+~~~
+
+- 当handles比其所指的对象更长寿，就可能发生虚吊
+
+# 条款29：为“异常安全”而努力是值得的
+
+**异常安全函数即使发生异常也不会泄露资源或允许任何数据结构败坏。这样的函数区分为三种可能的保证：基本型，强烈型，不抛异常型**
+
+**强烈保证往往能够以copy and swap实现出来，但强烈保证并非对所有函数都可以实现或具备现实意义**
+
+**函数提供的“异常安全保证”通常最高值等于其所调用的各个函数的异常安全保证的最弱者**
+
+- 带有异常安全性的函数会
+  - 不泄露任何资源
+  - 不允许数据败坏
+
+- 异常安全函数提供以下三个保证之一：
+
+  - 基本承诺：如果异常被抛出，程序内任何事物仍保持在有效状态下，没有任何对象或数据结构因此败坏，所有对象都处于一种内部前后一致的状态。
+  - 强烈保证：如果异常被抛出，程序状态不改变。调用这样的函数需要有这样的认知：如果函数成功，就完全成功；如果函数失败，程序就返回到调用函数前的状态。
+
+  ~~~cpp
+  class PrettyMenu{
+      std::tr1::shared_ptr<image>bgImage;
+  };
+  
+  void PrettyMenu::changeBackground(std::istream& imgSrc)
+  {
+      Lock m1(&mutex);//条例14的方法创建Lock管理类
+      bgImage.reset(new Image(imgSrc));
+      ++imgChanges;
+  }
+  ~~~
+
+  
+
+  - 不抛掷保证：承诺绝对不抛出异常，因为他们总是能够完成他们原先承诺的功能。
+
+# 条款30：透彻了解inlining的里里外外
 
