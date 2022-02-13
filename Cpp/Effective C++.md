@@ -538,3 +538,216 @@ Mutex n;
 
   - 复制底部资源：深拷贝
   - 转移底部资源的拥有权：拥有权从被复制物转移到目标物
+
+# 条款15：在资源管理类中提供对原始资源的访问
+
+**APIs往往要求访问原始资源，所以每个RAIIclass都应该提供一个“取得其所管理资源”的方法**
+
+**对原始资源的访问可能经由显式转换或者隐式转换，一般而言，显式转换安全，隐式转换方便**
+
+- 如果一个函数需要的是原属数据，在使用RAII管理类后不能直接传入
+- 显式转换
+
+~~~cpp
+int days(const A* pi);
+
+std::tr1::shared_ptr<A>p(createA());//createA() return A*
+//int d = days(p)//error,不能传入一个shared_ptr类型
+int d = days(p.get());//get提供一个显式钻换，返回指针内的原始指针的复件
+~~~
+
+- 隐式转换
+
+~~~cpp
+class Font{
+public:
+    //    FontHandle get()const {return f;} //显式转换函数
+    operator FontHandle()const{return f;}//隐式转换函数
+
+private:
+    FontHandle f;
+};
+
+Font f1(getFont());
+//Font f2 = f1;//error,f1被隐式转换为FontHandle
+FontHandle f2 = f1;//实现了自动隐式转换，但影响了使用原来的类
+~~~
+
+# 条款16：成对使用new和delete时要采用相同的形式
+
+**new中使用[]，必须在相应的delete中也使用[]。如果new的时候不使用[]，delete也不用**
+
+~~~cpp
+typedef string AddressLines[4];
+std::string* pal = new AddressLines;//equal to  string*pal = new string[4]
+delete []pal;
+~~~
+
+# 条款17：以独立语句将newed对象置入智能指针
+
+**以独立语句将newed对象存储在智能指针内。如果不这样做，一旦异常被抛出，有可能导致难以察觉的资源泄露**
+
+~~~cpp
+processWidget(std::tr1::shared_ptr<widget>(new widget),priority());//这种写法，不能保证三个操作的执行顺序，processWidget操作异常时可能无法将new widget放到shared_ptr管理，造成资源泄露
+
+//独立语句没有这个问题
+std::tr1::shared_ptr<widget>pw(new widget);
+
+processWidget(pw,priority());
+~~~
+
+# 条款18：让接口容易被正确使用，不容易被误用
+
+**"促进正确使用"的办法包括接口的一致性，以及与内置类型的行为兼容**
+
+**”阻止误用“的办法包括建立新类型，限制类型上的操作，束缚对象值，消除客户端的资源管理责任**
+
+**shared_ptr支持定制型删除器，可用于防范DLL问题，可悲用来自动解除互斥锁等等**
+
+~~~cpp
+class Date{
+public:
+    Date(int month,int day,int year);
+    //客户端可能顺序错误的传参，也可能传入无效日期
+};
+
+//导入新的类型来防范
+struct Day{
+    explicit Day(int d):val(d){}
+    int val;
+};
+//Month Year同理
+
+//限制范围
+class Month{
+public:
+    static Month Jan(){return Month(1);}
+    static Month Feb(){return Month(2);}
+    //其他月...
+private:
+    explicit Month(int m);
+};
+class Date{
+public:
+    Date(const Month&m,const Days&d,const Year&y);
+};
+
+Date d(Month::Feb(),Day(21),Year(1999));
+~~~
+
+- 任何借口如果要求客户端必须记得做某事，就是有“不正确使用”的倾向。
+  - 如资源管理
+
+~~~cpp
+std::tr1::shared_ptr<book>createBook()
+{
+	std::tr1::shared_ptr<book>retVal(static_cast<book*>(0),deleter);//创建资源管理
+    retVal = ...;//指向正确值
+    return retVal;
+}
+~~~
+
+# 条款19：设计class犹如设计type
+
+设计class的注意点
+
+- 新type的对象应该如何被创建和销毁：涉及构造函数，析构函数，内存分配函数和释放函数
+- 对象的初始化和赋值应该有什么样的差别：决定构造函数和赋值操作符的行为
+- 新type的对象如果按值传递：涉及拷贝构造函数
+- 新type的合法值：决定类必须维护的约束条件
+- 新type是否需要配合某个继承图系：类有继承关系会受到继承类的约束
+- 新type需要什么样的转换：是否允许隐式转换，还是只允许explicit构造函数存在，就需要专门的执行转换的函数
+- 什么操作符和函数对此新type合理
+- 应该驳回什么样的标准函数：private者
+- 谁该用新的type成员：用限定符管理，public，private，friend，protected
+- 新type的未声明接口：为效率，异常安全性，资源运用提供约束条件
+- 新type有多么一般化：class or template class
+- 真的需要新的type吗：继承方便还是新的方便
+
+# 条款20：用pass-by -reference-to-const 代替pass-by-value
+
+**尽量用pass-by -reference-to-const 代替pass-by-value，前者通常比较高效，并且可以避免切割问题**
+
+**以上规则不适用于内置类型和STL的迭代器和函数对象，对他们而言，pass-by-value更合适**
+
+- 传值会比传引用多一次构造和析构操作，内部的参数也要完全拷贝一份，资源消耗很大
+
+- 在继承关系上，传值会造成对象切割
+
+~~~cpp
+class A{
+public:
+    std::string name()const;
+    virtual void display()const;
+};
+
+class B:public A{
+public:
+    virtual void display()const;
+};
+
+void printNameAndDisplay(A a)
+{
+    std::cout<<a.name();
+    a.display();
+}
+
+B b;
+printNameAndDisplay(b);//b会被构造成一个A对象，所有B特化的信息都会被切除
+~~~
+
+- 内置类型 pass by value 的效率王王比pass by reference to const高，STl的迭代器和函数对象就被设计为pass by value
+
+# 条款21：必须返回对象时，别妄想返回其reference
+
+**绝不要返回一个pointer或者reference指向一个local stack对象，或者返回reference指向一个heap-allocated对象，或者返回pointer或reference指向一个local static对象而有可能需要多个这样的对象**
+
+~~~cpp
+inline const A operator*(const A&lhs,const A&rhs)
+{
+    return A(lhs.n*rhs.n);
+}//要返回新的对象，就要付出构造和析构的代价，但是只能这样。编译器可能会安全消除该行为，程序执行比预期要快
+~~~
+
+# 条款22：将成员变量声明为private
+
+**切记将成员变量声明为private。这可以赋予客户访问数据的一致性，可惜话访问控制，允许约束条件获得保证，并提供class作者以充分的实现弹性**
+
+**protected，public都不具有封装性，private具有封装性**
+
+- 成员变量的控制
+
+~~~cpp
+class AccessLevels{
+public:
+    int getReadOnly()const{return readOnly;}
+    void setReadWrite(int val){readWrite = val;}
+    int getReadWrite()const{return readWrite;}
+    void setWriteOnly(int val){writeOnly = val;}
+private:
+    int noAccess;
+    int readOnly;
+    int readWrite;
+    int writeOnly;
+};
+~~~
+
+- 封装：public意味着不封装，修改这个变量影响的范围很广，protected成员一旦修改，派生类都受到影响，private时提供封装的访问权限
+
+# 条款23：宁以non-member,non-friend替换member函数
+
+**以non-member,non-friend替换member函数。这样可以增加封装性，包裹弹性和技能扩充性**
+
+- 成员函数或者友元函数都能访问private数据，不利于封装性
+
+~~~cpp
+namespace WBS{
+   class WebBrowser{};
+    void clearBrowser(WebBroser&wb);//无权访问WebBrowser的private
+}
+~~~
+
+- 将所有便利函数放在多个头文件里，但在一个namespace下。这些便利函数就可以整合在一起
+
+# 条款24：若所有参数皆需要类型转换，请为此采用non-member函数
+
