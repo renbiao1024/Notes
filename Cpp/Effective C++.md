@@ -970,3 +970,389 @@ rec.lowerRight().setX(50);//不能修改内部参数
 
 # 条款30：透彻了解inlining的里里外外
 
+**将大多数inline限制在小型，被频繁调用的函数上。这可使日后调式过程和二进制升级更容易，也可使潜在的代码膨胀问题最小化，使程序的速度提升机会最大化**
+
+**不要只因为function templates出现在头文件，就将他们声明为inline**
+
+- 对此函数的每次调用，都以函数本体替换之
+
+- 特点：
+  - 执行相关语境最优化
+  - 程序体积变大，导致额外的换页行为，降低高速缓冲装置的击中率
+  - 当inline函数改变，所有使用它的地方都需要重新编译，而非内联函数只需要重新连接
+
+- 结合上诉特点，inline函数适合函数本体的产出码比函数调用的产出码更小的情况
+- inline是个申请，编译器可以忽略
+  - 编译器拒绝复杂函数的inline，如带有循环，递归
+  - 拒绝virtual函数，因为inline在编译阶段，virtual在运行阶段确定
+
+~~~cpp
+class Person{
+public:
+    //类内函数隐喻inline申请，类内的friend也有
+    int age()const{return theAge;}
+    
+private:
+    int theAge;
+}
+//显式申请inline
+template<typename T>
+inline const T& std::max(const T& a,const T& b){return a<b? b:a;}
+~~~
+
+# 条款31：将文件间的编译依存关系降到最低
+
+**支持“编译依存最小化”的一般构想是：相依于声明式，不要相依于定义式，两个手段：handle class和interface class**
+
+**程序的库头文件应该以“完全且仅有声明式”的形式存在。这种做法不论是否涉及templates都适用**
+
+- 以声明的依存性，替代定义的依存性
+
+~~~cpp
+//当date类修改，person类也要重编译
+class Date;
+class Person{
+public:
+	string getDate()const;
+    Person(Date&birthdate):theBirthdayDate(birthdate){}
+private:
+    Date theBirthdayDate;
+};
+
+//如何降低依赖性
+
+//方法1：Handle class
+//PersonImpl负责实现接口，Person提供接口，此时date修改不会导致person重编译
+class PersonImpl;
+class Date;
+class Person{
+public:
+    Person(const Date&birthdate):pImpl(new PersonImpl(birthdate)){}
+	string getDate()const
+    {
+        return pImpl->date();
+    }
+private:
+    tr1::shared_ptr<PersonImpl>pImpl;
+};
+
+//方法2：Interface class
+//实现接口类
+class Person{
+public:
+    virtual ~Person();
+    virtual string getDate() const = 0;
+    
+    static tr1::shared_ptr<Person>create(const Date& birthday)
+    {
+        return tr1::shared_ptr<Person>(new RealPerson(birthday));//返回有实现的子类
+    }
+};
+
+//子类
+class RealPerson{
+public:
+    RealPerson(const Date& birthday):theBirthdayDate(birthday){}
+    
+private:
+    Date theBirthdayDate;
+};
+	//客户端使用
+Date dateOfBirthday;
+tr1::shared_ptr<Person>pp(Person::create(dateOfBirthday));
+cout<<pp->getDate();
+~~~
+
+- 如果使用reference和pointer能完成任务，就不傲使用object
+- 尽量以声明式代替定义式(前置声明)
+- 为声明式和定义式提供不同头文件
+
+# 条款32：确定你的public继承塑膜出is-a关系
+
+**public继承意味is-a。适用于base class的事情也一定适用于derived class 身上，因为每个派生类也都是一个基类**
+
+- 宁可采取“在编译期拒绝”，而不是“在运行期侦测他们”
+
+~~~cpp
+//在编译期拒绝
+class Bird{
+};
+
+class FlyBird:public Bird{
+public:
+    void fly();
+};
+class Penguin:public Bird{};
+
+//在运行期侦测他们
+class Bird{
+public:
+    void fly();
+};
+
+class Penguin:public Bird{
+public:
+    void fly(){error("且不会飞");}   //产生一个运行错误 
+};
+~~~
+
+# 条款33：避免遮掩继承而来的名称
+
+**派生类的名称会掩盖基类的名称。在public继承下从没有人希望如此**
+
+**为了让被掩盖的名称重见天日，可用using声明式或者转交函数**
+
+- 查找名称从内而外的，内部查到会遮盖外部名称
+- 名称只要相同就会遮蔽，和参数无关
+
+~~~cpp
+class Base{
+private:
+    int x;
+public:
+    virtual void f1() = 0;
+    virtual void f1(int);
+    virtual void f2();
+    void f3();
+    void f4();
+};
+
+class Derived:public Base
+{
+public:
+    virtual void f1();
+    void f3();
+    void f4();
+}
+
+Derived d;
+int x;
+
+d.f1();
+d.f1(x);//error,f1将父类两个同名函数都遮盖了
+d.f2();
+d.f3();
+d.f3(x);//error
+
+//解决方法：
+class Derived:public Base
+{
+public:
+    using Base::f1;
+    using Base::f3;//将父类函数暴露给子类
+    virtual void f1();
+    void f3();
+    void f4();
+}
+
+Derived d;
+int x;
+
+d.f1();//调用子类的
+d.f1(x);//调用父类的
+d.f2();//父
+d.f3();//子
+d.f3(x);//父
+~~~
+
+- 转交函数 处理并不像继承全部base class的情况
+
+~~~cpp
+class Base{
+private:
+    int x;
+public:
+    virtual void f1() = 0;
+    virtual void f1(int);
+};
+
+class Derived:private Base
+{
+public:
+    virtual void f1(){Base::f1();}//转交到基类的f1
+}
+
+Derived d;
+int x;
+
+d.f1();//调用子类的
+d.f1(x);//error,Base::f1被遮盖
+~~~
+
+# 条款34：区分接口继承和实现继承
+
+**接口继承和实现继承不同。在public继承下，子类总是继承基类的接口**
+
+**纯虚函数只具具体指定接口继承**
+
+**虚函数具体指定接口继承及缺省实现继承**
+
+**普通函数具体指定接口继承以及强制性实现继承**
+
+- public继承包含函数接口继承和函数实现继承
+
+~~~cpp
+//实例1
+class Shape{
+public:
+    virtual void draw()const = 0;//纯虚函数的目的是让派生类只继承函数接口，告诉派生类你必须提供一个draw函数，但不管你是如何实现的
+    virtual void error(const string&msg);//简朴虚函数的目的是让派生类继承其函数接口和缺省实现。会提供一份实现代码，子类可能覆写它。告诉派生类你必须支持一个error函数，可以自己提供一个，也可以使用缺省版本
+    int objectID()const;//非虚函数是为了让子类继承函数的接口及一份强制性实现
+};
+
+class Rectangle :public Shape{};
+class Ellipse :public Shape{};
+
+
+//实例2：切断接口和实现的连接
+	//实现方法一
+class Airplaane{
+public:
+    virtual void fly(const Airport& destination) = 0;//将fly和缺省的fly分开，用于切断接口和实现的连接
+protected:
+    void defaultFly(const Airport& destination);
+};
+
+class ModelA:public Airplane{
+public:
+    virtual void fly(const Airport& destination)
+    {
+        defaultFly(destination);//需要缺省的fly只需要调用它
+    }
+};
+class ModelB:public Airplane{
+public:
+    virtual void fly(const Airport& destination)
+    {
+        //自定义fly操作
+    }
+};
+	//实现方法二
+class Airplaane{
+public:
+    virtual void fly(const Airport& destination) = 0;//fly的声明是个接口，fly的定义是个缺省实现（子类明确提出使用才能），用于切断接口和实现的连接
+};
+//给纯虚函数一个定义
+void AirplaneLLfy(const Airplane& destination){//缺省行为}
+
+class ModelA:public Airplane{
+public:
+    virtual void fly(const Airport& destination)
+    {
+        Airplane::(destination);//需要缺省的fly只需要调用它
+    }
+};
+class ModelB:public Airplane{
+public:
+    virtual void fly(const Airport& destination)
+    {
+        //自定义fly操作
+    }
+};
+~~~
+
+# 条款35：考虑virtual函数以外的其他选择
+
+**virtual函数的替换方法包括NVI（模板方法的一种）和策略模式**
+
+**将机能从函数成员转移到class外部函数，带来一个缺点：非成员函数无法访问class的non-public成员**
+
+**tr1::function对象的行为就像一般的函数指针。这样的对象可接纳“与给定的目标签名式兼容”的所有可调用物**
+
+- 使用non-virtual interface(NVI)手法，是模板方法设计模式的一种特殊形式。它以public non_virtual成员函数包裹较低访问性（private,protected）的virtual函数
+
+- 将virtual函数替换成“函数指针成员变量”，是策略模式的一种分解表现形式
+
+- 以tr1::function成员变量替换virtual函数，因而允许使用任何可调用物搭配一个兼容于需求的签名式。也是策略模式的某种形式
+
+- 将继承体系内的virtual函数替换成另一个继承体系的virtual函数，是策略模式的传统手法
+
+- NVI手法（非虚接口）又称模板方法
+
+~~~cpp
+class GameCharacter{
+public:
+    int healthValue()const//虚函数的外覆器
+    {
+       	int retVal = doHealthVal();
+        return retVAl;
+    }
+private:
+    virtual int doHealthVal()const{}//缺省算法，子类可重新定义继承来的private virtual函数
+};
+~~~
+
+- 策略模式
+
+~~~cpp
+//使用函数指针实现，本例的局限性在于只能使用一个返回int的函数
+class GameCharacter;
+
+int defaultHealthCalc(const GameCharacter&gc);
+
+class GameCharacter{
+public:
+    typedef int (*HealthCalcFunc)(const GameCharacter&);//函数指针代替虚函数
+    
+    explicit GameCharacter(HealthCalcFunc hcf = defaultHealthCalc):healthFunc(hcf){}
+    
+    int healthValue()const{return healthFunc(*this);}
+private:
+    HealthCalcFunc healthFunc;
+};
+
+class EvilBadGuy:public GameCharacter{
+public:
+    explicit EvilBadGuy(HealthCalcFunc hcf = defaultHealthCalc):GameCharacter(hcf){}
+}
+
+int loseHealthQuickly(const GameCharacter&);
+int loseHealthSlowly(const GameCharacter&);
+
+EvilBadGuy ebg1(loseHealthQuickly);
+EvilBadGuy ebg1(loseHealthSlowly);
+~~~
+
+~~~cpp
+//使用tr1::function实现：本例的参数只要能被隐式转换成const GameCharacter&，返回值能被隐式转换成int即可使用
+class GameCharacter;
+
+int defaultHealthCalc(const GameCharacter&gc);
+
+class GameCharacter{
+public:
+    typedef std::tr1::function<int (const GameCharacter&)>HealthCalcFunc;//产生的对象可以保存任何与此签名式兼容的可调用物，
+    
+    explicit GameCharacter(HealthCalcFunc hcf = defaultHealthCalc):healthFunc(hcf){}
+    
+    int healthValue()const{return healthFunc(*this);}
+private:
+    HealthCalcFunc healthFunc;
+};
+
+class EvilBadGuy:public GameCharacter{
+public:
+    explicit EvilBadGuy(HealthCalcFunc hcf = defaultHealthCalc):GameCharacter(hcf){}
+};
+
+//返回short类型
+short calcHealth(const GameCharacter&);
+//函数对象
+struct HealthCalculator{
+	int operator()(const GameCharacter&)const{}
+};
+//类函数
+class GameLevel{
+public:
+    float health(const GameCharacter&)const;
+};
+
+
+EvilBadGuy ebg1(calcHealth);
+EvilBadGuy ebg1(HealthCalculator());
+GameLevel currentlevel;
+EvilBadGuy ebg3(std::tr1::bind(&GameLevel::health,currentLevel,_1));
+~~~
+
+# 条款36：绝不重新定义继承而来的non-virtual函数
+
