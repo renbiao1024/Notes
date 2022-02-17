@@ -1356,3 +1356,468 @@ EvilBadGuy ebg3(std::tr1::bind(&GameLevel::health,currentLevel,_1));
 
 # 条款36：绝不重新定义继承而来的non-virtual函数
 
+- 避免遮蔽问题，导致子类不再满足 is a 父类
+
+# 条款37：绝不重新定义继承而来的缺省参数值
+
+**绝对不要重定义一个继承而来的缺省参数值，因为缺省参数值是静态绑定，而虚函数是动态绑定**
+
+- 虚函数动态绑定，缺省数值静态绑定
+
+~~~cpp
+class Shape{
+public:
+    enum shapeColor{Red,Green,Blue};
+    virtual void draw(shapeColor color = Red)const = 0;
+};
+class Rectangle:public Shape{
+public:
+    virtual void draw(shapeColor color = Green)const;//静态绑定下这个函数不从基类继承缺省参数值，但若以指针调用此函数，可以不指定参数值，动态绑定会继承基类的缺省参数值
+};
+
+Shape* ps;//ps静态类型Shape*,无动态类型
+Shape* pr = new Rectangle;//pr静态类型Shape*，动态类型Rectangle*
+
+pr->draw(Shape::Red);//调用rectangle的draw
+pr->draw();//调用rectangle的draw(Shape::Red)而非Green
+ps = pr;//此时ps静态类型Shape*，动态类型Rectangle*
+~~~
+
+- NVI替代方法
+
+~~~cpp
+class Shape{
+public:
+    enum ShapeColor{Red,Green,Blue};
+    void draw(ShapeColor color = Red)const//由于非虚函数绝对不该被子类覆写，这样设计使得draw的color缺省值总是red
+    {
+		doDraw(color);
+    }
+private:
+    virtual void doDraw(ShapeColor color)const = 0;
+};
+
+class Rectangle:public Shape{
+public:
+
+private:
+    virtual void doDraw(ShapeColor color)const;
+};
+~~~
+
+# 条款38：通过复合塑模出has-a或“根据某物实现出”
+
+**复合的意义和public继承完全不同**
+
+**在应用域，复合意味着has-a。在实现域，符合意味着is-implemented-terms-of**
+
+- has-a
+
+~~~cpp
+class A;
+
+class B{
+private:
+    A a;
+};
+~~~
+
+- is-implemented-in-terms-of根据某物实现出 = has-a + use for implement
+
+~~~cpp
+//用list实现set
+template<class T>
+class Set{
+public:
+    bool member(const T& item)const;
+    void insert(const T& item);
+private:
+    std::list<T>rep;
+}
+
+template<typename T>
+bool Set<T>::member(const T& item)const
+{
+    return std::find(rep.begin(),rep.end(),item)!=rep.end();
+}
+
+template<typename T>
+void Set<T>::insert(const T& item)
+{
+    if(!member(item)rep.push_back(item));
+}
+~~~
+
+# 条款39：明智而审慎使用private继承
+
+**private继承意味着is-implemented-in-terms-of（根据某物实现出）。它通常比复合的级别低。但是当子类需要访问protected base class的成员，或需要重新定义继承而来的virtual函数时，这么设计是合理的**
+
+**和复合不同，private继承可以造成empty base最优化，这对致力于对象尺寸最小化的程序很重要**
+
+- 尽可能使用复合实现“根据某物实现出”，必要时**（当protected和virtual函数牵扯进来）**才用private继承
+
+~~~cpp
+//private继承
+class Timer{
+public:
+    explicit Timer(int tickFrequency);
+    virtual void onTick()const;
+};
+
+class Widget :private Timer
+{
+private:
+	virtual void onTick()const;//private继承将此函数变为private，重写时仍在这    
+}
+
+//等价:public继承+复合
+class Widget{
+private:
+    class WidgetTimer : public Timer
+    {
+    public:
+        virtual void onTick()const;
+    };
+    WidgetTimer timer;
+};
+~~~
+
+~~~cpp
+class Empty{};//size == 1
+class HoldEmpty{//size == 8
+private:
+    int x;//size == 4
+    Empty e;//size == 4
+};
+
+class PrivateEmpty : private Empty//size == 4
+{
+private:
+    int x;//size == 4
+};
+~~~
+
+# 条款40：明智而审慎地使用多重继承
+
+**多重继承比单一继承复杂。他可能导致新的歧义性，以及对virtual继承的需要**
+
+**virtual继承会增加大小，速度，初始化复杂度等成本。如果虚基类不带任何数据，将是最具实用价值的情况**
+
+**多重继承的确有正当用途。其中一个情节涉及“public继承某个“Interface class”和private继承某个协助实现的class的两相组合**
+
+~~~cpp
+class BaseA
+{
+public:
+    void checkOut();
+};
+
+class BaseB
+{
+private:
+    bool checkOut();
+};
+
+class derived : public BaseA,public BaseB
+{
+    
+};
+
+derived d;
+d.checkOut();//error造成歧义，无法确定调用的checkout时来自哪个基类，尽管B的该函数时private
+d.BaseA::checkOut();//明确了
+d.BaseB::checkOut()//error 试图调用private
+~~~
+
+- 钻石型多重继承:使用**虚继承**防止子类产生同样的东西两份
+
+~~~cpp
+class grandfather{};
+class father1:virtual pubic grandfather{};
+class father2:virtual pubic grandfather{};
+class son : public father1,public father2{};
+~~~
+
+- 忠告
+  - 非必要不适用虚基：开销大，容易错
+  - 尽量避免在虚基放数据：防止初始化错误
+
+~~~cpp
+class IPerson{//person的接口
+public:
+    virtual ~IPerson();
+    virtual string name() const = 0;
+    virtual string birthDate() const = 0;
+};
+class DatebaseID{};
+//shared_ptr<IPerson>makePerson(DatebaseID personIdentifier);//根据ID创建Person对象
+DatebaseID askUserForDatebaseID();//获取一个ID
+DatebaseID id(askUserForDatebaseID());
+shared_ptr<IPerson>pp(makePerson(id));
+
+class PersonInfo{//协助类
+public:
+    explicit PersonInfo(DatebaseID pid);
+    virtual ~PersonInfo();
+    virtual const char*theName()const;
+    virtual const char* theBirthDate() const;
+private:
+    virtual const char* valueDelimOpen() const {return "[";}
+    virtual const char* valueDelimClose() const {return "]";}
+};
+
+class Cperson :public IPerson,private PersonInfo{
+public:
+    explicit Cperson(Datebase pid):PersonInfo(pid){}
+    virtual string name()const
+    {
+        return PersonInfo::theName();
+    }
+    
+    virtual string birthDate()const
+    {
+		return PersonInfo::theBirthDate();
+    }
+private:
+    const char* valueDelimOpen()const{return "";}
+    const char* valueDelimClose()const {return "";}
+};
+~~~
+
+# 条款41：了解隐式接口和编译期多态
+
+**class和templates都支持接口和多态**
+
+**对class而言接口是显式的，以函数签名为中心。多态是通过virtual函数发生于运行期**
+
+**对template参数而言，接口是隐式的，奠基于有效表达式。多态则是通过template具现化和函数重载解析发生于编译期**
+
+- 显式接口和运行期多态
+
+~~~cpp
+class Widget{
+public:
+    Widget();
+    virtual ~Widget();
+    virtual size_t size()const;
+    virtual void normalize();
+};
+
+void doProcessing(Widget&w)
+{
+    if(w.size() > 10)
+        w.normalize();
+}
+~~~
+
+- 隐式接口和编译期多态
+
+~~~cpp
+template<typename T>//以不同的template参数具现化function templates会导致调用不同函数，这就是编译期多态
+void doProcessing(T& w)
+{
+    if(w.size() > 10)
+        w.normalize();
+}
+~~~
+
+# 条款42：了解typename的双重意义
+
+**声明template参数时，前缀关键字class 和 typename可以互换**
+
+**请使用关键字typename标识嵌套从属类型名称，但不得在base classes list或者member initilization list内以ta作为修饰符**
+
+~~~cpp
+template<typename T>
+template<class T>
+    //完全等价
+~~~
+
+- 任何时候当你想在template中指涉一个嵌套从属类型名称，就必须在紧邻它的前一个位置放上关键字typename
+
+~~~Cpp
+template<typename C>
+void f(const C& container,typename C::iterator iter);
+~~~
+
+- typename不可以出现在base classes list内的嵌套从属类型名称之前，也不可以在member initialization list中作为bases class的修饰符
+
+~~~cpp
+template<typename T>
+class Derived:public Base<T>::Nested{//base classes list
+public:
+    explicit Derived(int x):Base<T>::Nested(x)//member initialization list
+    {
+        typename Base<T>::Nested temp;//嵌套从属类型名需要加上typename
+    }
+}
+~~~
+
+~~~cpp
+template<typename IterT>
+void workWithIterator(IterT iter)
+{
+    typedef typename std::iterator_traits<IterT>::value_type value_type;
+    value_type temp(*iter);
+}
+~~~
+
+# 条款43：学习处理模板化基类内的名称
+
+**可在derived class templates内通过this->指涉base templates内的成员名称，或可藉由一个明白写出的base class资格修饰符完成**
+
+~~~cpp
+class CompanyA{
+public:
+    void sendCleartext(const string& msg);
+    void sendEncrypted(const string& msg);
+};
+
+class CompanyB{
+public:
+    void sendCleartext(const string& msg);
+    void sendEncrypted(const string& msg);
+};
+
+class CompanyZ{
+public:
+    void sendEncrypted(const string& msg);
+    //不提供sendCleartext
+}
+
+class MsgInfo{};
+
+//泛化
+template<typename Company>
+class MsgSender{
+public:
+    void sendClear(const MsgInfo& info){
+        string msg;
+        Company c;
+        c.sendCleartext(msg);
+    }
+    
+    void sendSecret(const MsgInfo& info){
+        string msg;
+        Company c;
+        c.sendEncrypted(msg);
+    }
+};
+
+//全特化
+template<>
+class MsgSender<CompanyZ>{
+public:
+    void sendSecret(const MsgInfo& info) {}
+};
+
+template<typename Company>
+class LoggingMsgSender:public MsgSender<Company>{
+public:
+    void sendClearMsg(const MsgInfo& info){
+        sendClear(info);//调用base class的函数，无法通过编译，因为可能有基类被特化，如果是conmanyZ无此函数
+    }
+};
+~~~
+
+- 进入templatized base classes观察的行为不失效的方法
+
+~~~cpp
+//方法1：在基类函数的调用动作前加this->
+template<typename Company>
+class LoggingMsgSender:public MsgSender<Company>{
+public:
+    void sendClearMsg(const MsgInfo& info){
+        this->sendClear(info);//调用base class的函数，无法通过编译，因为可能有基类被特化，如果是conmanyZ无此函数
+    }
+};
+
+//方法2：using声明式
+template<typename Company>
+class LoggingMsgSender:public MsgSender<Company>{
+public:
+    using MsgSender<Company>::sendClear;
+    void sendClearMsg(const MsgInfo& info){
+        sendClear(info);//调用base class的函数，无法通过编译，因为可能有基类被特化，如果是conmanyZ无此函数
+    }
+};
+
+//方法3：明确指出被调用的函数在基类
+template<typename Company>
+class LoggingMsgSender:public MsgSender<Company>{
+public:
+    void sendClearMsg(const MsgInfo& info){
+        MsgSender<Company>::sendClear(info);//调用base class的函数，无法通过编译，因为可能有基类被特化，如果是conmanyZ无此函数
+    }
+};
+~~~
+
+# *条款44：将与参数无关的代码抽离templates
+
+**Templates生成多个classes和多个函数，所以任意template代码都不该和某个造成膨胀的template参数产生相依关系**
+
+**因非类型模板参数而造成的代码膨胀，往往可以消除，做法是以函数参数或class成员变量替换template参数**
+
+**因类型参数而造成的代码膨胀，往往可降低，做法是让带有完全相同二进制表述的具现型和共享现码**
+
+~~~cpp
+template<typename T,size_t n>
+class A{
+public:
+    void insert();
+}
+
+A<double,5> sm1;
+sm1.insert();
+A<double,10>sm2;
+sm2.insert();
+//具现化两份insert，然而仅有一个数字改变了，发生代码膨胀
+~~~
+
+~~~cpp
+//解决方法1
+template<typename T>
+class ABase{
+protected:
+    void insert(size_t n);
+};
+
+template<typename T,size_t n>
+class A:private ABase<T>
+{
+private:
+    using ABase<T>::insert;
+public:
+    void insert(){this->insert(n);}
+};
+
+A<double,5> sm1;
+sm1.insert();
+A<double,10>sm2;
+sm2.insert();//此时共享一个base class的insert
+~~~
+
+~~~cpp
+//解决方法2
+template <typename T>
+class ABase
+{
+protected:
+    ABase(size_t n,T*pMem):size(n),pData(pMem){}
+    void setDataPtr(T* ptr){pData = ptr;}
+private:
+    size_t size;
+    T*pData;
+};
+
+template<typename T,size_t n>
+class A:private ABase<T>{
+public:
+    A():ABase<T>(n,data){}
+private:
+    T data[n*n];
+};
+~~~
+
+# 条款45：运用成员函数模板接受所有兼容类型
+
