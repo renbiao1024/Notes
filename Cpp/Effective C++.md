@@ -1821,3 +1821,493 @@ private:
 
 # 条款45：运用成员函数模板接受所有兼容类型
 
+**使用member function templates 生成 “可接受所有兼容类型”**
+
+**如果你声明member templates 用于泛化copy构造或泛化assignment操作，你还需要声明正常的copy构造函数和copy assignment操作符**
+
+~~~cpp
+template<typename T>
+class smartPtr{
+public:
+    template<typename U>
+    SmartPtr(const SmartPtr<U>& other):heldPtr(other.get()){...}//泛化构造函数,对于任意u创建t对象
+    T*get()const{return heldPtr;}
+private:
+    T*heldPtr;
+}
+~~~
+
+- shared_ptr实现
+
+~~~cpp
+template<Class T>
+class shared_ptr{
+public:
+    template<class Y>
+    explicit shared_ptr(Y* p);
+    
+    template<class Y>
+    shared_ptr(shared_ptr<Y>const& r);
+    
+    template<class Y>
+    explicit shared_ptr(weak_ptr<Y>const&r);
+    
+    template<class Y>
+    explicit shared_ptr(auto_ptr<Y>& r);
+    
+    template<class Y>
+    shared_ptr& operator=(shared_ptr<Y>const& r);
+    
+    template<class Y>
+    shared_ptr& operator=(auto_ptr<Y>& r);
+};
+~~~
+
+# 条款46：需要类型转换时请为模板定义非成员函数
+
+**当我们编写一个class templates ，而他提供的“与此template相关的”函数支持“所有参数的隐式转换”时，请将那些函数定义为“class template内部的friend”**
+
+~~~cpp
+template<typename T>
+class Rational{
+public:
+    friend const Rational operator*(const Rational&lhs,const Rational&rhs);//类型转换不能是成员函数，自动具现化需要声明在class内部，所以声明为友元
+};
+
+template<typename T>
+const Rational<T>*operator*(const Rational<T>&lhs,const Rational<T>&rhs)
+{
+	return Rational(lhs.num()*rhs.num());
+}
+~~~
+
+# 条款47：请使用traits class 表现类型信息
+
+**Traits classes使得“类型相关信息”在编译器可用。他们以templates和templates 特化完成实现**
+
+**整合重载技术，traits classes有可能在编译期对类型执行if else 测试**
+
+- input迭代器只能向前移动，一次一步读取所指内容。模仿阅读指针
+
+- output迭代器类似，模拟读写指针
+- forward迭代器：只能向前移动
+- bidirectional：可以双向移动
+- random access迭代器：可在常量时间向前或向后跳跃任意距离
+
+~~~cpp
+struct input_iterator_tag{};
+struct output_iterator_tag{};
+struct forward_iterator_tag:public input_iterator_tag{};
+struct bidirectional_iterator_tag:public forward_iterator_tag{};
+struct random_access_iterator_tag:public bidirectional_iterator_tag{};
+~~~
+
+- iterator_traits
+
+~~~cpp
+template<typename IterT>
+struct iterator_traits{
+    typedef typename IterT::iterator_category iterator_category;
+};
+
+template<typename IterT>//针对内部指针偏特化
+struct iterator_traits<IterT*>{
+    typedef random_access_iterator_tag iterator_category;
+};
+
+template<...>
+class list{
+pubic:
+    class iterator{
+    public:
+        typedef bidirectional_iterator_tag iterator_category;//设定一种迭代器类型
+    };
+    ...
+};
+~~~
+
+- advance函数：用来将迭代器移动给定距离（TMP案例）
+
+~~~cpp
+//重载不同tag版本
+template<typename IterT,typename DistT>
+void doAdvance(IterT& iter ,DistT d,std::random_access_iterator_tag)
+{
+    iter += d;
+}
+
+template<typename IterT,typename DistT>
+void doAdvance(IterT& iter ,DistT d,std::bidirectional_iterator_tag)
+{
+    if( d >= 0){while(d--)++iter;}
+    else {while(d++)--iter;}
+}
+
+template<typename IterT,typename DistT>
+void doAdvance(IterT& iter ,DistT d,std::input_iterator_tag)//forward_iterator_tag继承自input_iterator_tag，也可用该版本
+{
+    if( d < 0){throw std::out_of_range("Negative distance");}
+    while(d--)--iter;
+}
+
+template<typename IterT , typename DistT>
+void advance(IterT& iter , DistT d)//d<0向后移动
+{
+    doAdvance(iter,d,typename std::iterator_traits<IterT>::iterator_category());//将ifelse由doadvance的特化体表现
+}
+~~~
+
+# 条款48：认识template元编程（TMP）
+
+**TMP可将工作由运行期移往编译期，因而获得更高的效率和得以早期侦错**
+
+**TMP可被用来生成“基于政策选择组合”的客户端定制代码，也可用来避免生成对某些特殊类型并不适合的代码**
+
+- 作用
+  - 让某些事情更容易。没有他的话有些事情将是几乎不可能完成的
+  - TMP执行于编译期，有利于在编译期就发现错误，生成的程序更高效，内存需求小。但是编译时间变长
+
+# 条款49：了解new-handler的行为
+
+**set_new_handler允许客户指定一个函数，在内存分配无法得到满足时调用**
+
+**Nothrow是一个颇为局限的工具，仅适用于内存分配；后继的构造函数调用还可能抛出异常**
+
+- new-hander用于处理new内存不足
+
+~~~cpp
+namespace std{
+    typedef void(*new_handler)();
+    new_handler set_new_handler(new_handler p) throw();
+}
+
+void OutOfMem()
+{
+	std::cerr<<"Unable to satisfy request for memory\n";
+    std::abort();
+}
+
+int main()
+{
+	std::set_new_handler(OutOfMem);
+    int* pBigDataArray = new int[100000000L];//分配失败调用OutOfMem
+}
+~~~
+
+- 类专属的new-handler
+
+~~~cpp
+class Widget{
+public:
+    static std::new_handler set_new_handler(std::new_handler p)throw();
+    static void* operator new(std::size_t size)throw(std::bad_alloc);
+private:
+    static std::new_handler currentHandler;
+}
+
+std::new_handler currentHandler = 0;
+
+std::new_handler Widget::set_new_handler(std::new_handler p)throw()
+{
+	std::new_handler oldHandler = currentHandler;
+    currentHandler = p;
+    return oldHandler;
+}
+~~~
+
+~~~cpp
+class NewHandlerHolder{
+public:
+    explicit NewHandlerHolder(std::new_handler nh):handler(nh){}//获取目前的handler
+    ~NewHandlerHolder(){std::set_new_handler(handler);}//释放它
+    
+private:
+    std::new_handler handler;
+    NewHandlerHolder(const NewHandlerHolder&);
+    NewHandlerHolder&operator=(const NewHandlerHolder&);
+};
+
+void* Widget::operator new(std::size_t size)throw(std::bad_alloc)
+{
+    NewHandlerHolder h(std::set_new_handler(currentHandler));
+    return ::operator new(size);
+}
+
+void outOfMem();//Widget对象分配失败时调用
+Widget::set_new_handler(outOfMem);//设置handler函数
+Widget* pw1 = new Widget;//分配内存，失败调用outOfMem
+std::string* ps = new std::string;//分配内存失败调用global handler函数
+Widget::set_new_handler(0);//设定handler为null
+Widget* pw2 = new Widget;//内存分配异常，立刻抛出异常（无专属的handler）
+~~~
+
+~~~cpp
+template<typename T>
+class NewHandlerSupport{
+public:
+    static std::new_handler set_new_handler(std::new_handler p)throw();
+    static void* operator new(std::size_t size)throw(std::bad_alloc);
+    
+private:
+    static std::new_handler currentHandler;
+};
+
+template<typename T>
+std::new_handler NewHandlerSupport<T>::set_new_handler(std::new_handler p)throw()
+{
+	std::new_handler oldHandler = currentHandler;
+    currentHandler = p;
+    return oldHandler;
+}
+
+template<typename T>
+void* NewHandlerSupport<T>::operator new(std::size_t size)throw(std::bad_alloc)
+{
+    NewHandlerHolder h(std::set_new_handler(currentHandler));
+    return ::operator new(size);
+}
+template<typename T>
+std::new_handler NewHandlerSupport<T>::currentHandler = 0;//初始化
+
+class Widget:public NewHandlerSupport<Widget>{};
+~~~
+
+~~~cpp
+//分配失败返回null的行为称为Nothrow
+class Widget{};
+Widget*pw1 = new Widget;//分配失败返回bad_alloc
+if(pw == 0)...//这个测试一定失败
+    
+Widget* pw2 = new(std::nothrow)Widget;//分配失败返回0
+if(pw2 == 0)...//这个测试可能成功
+~~~
+
+# 条款50：了解new和delete的合理替换时机
+
+**写个自定义的new和delete有很多理由，包括改善效能，对heap运用错误进行调试，收集heap使用信息**
+
+- 为了检测运用错误
+  - 包括new之后没delete；new之后多次delete；地址在选区的范围之前或之后
+- 为了强化效能：考虑破碎问题，大块内存被取用归还成零散的小内存
+- 为了收集动态分配内存之使用统计信息：如何分配的内存，什么次序分配和归还，运用形态是否随时间改变
+- 为了增加分配和归还速度：泛用型分配器有线程安全检测，做一个单线程不需要线程安全检测，所以可以节省时间
+- 为了降低缺省内存管理器带来的空间额外开销：专用的分配器往往不会有多余的操作占内存
+- 为了弥补缺省分配器中的非最佳齐位：泛用型不保证是最佳对齐方式
+- 为了将关联对象成簇集中：将相关对象放在一个heap上，集中在尽可能少的页上，降低内存页错误
+- 为了获取非传统行为：实现泛用型没有的功能
+
+# 条款51：编写new和delete时需固守常态
+
+**operator new 应该含有一个无穷循环，并在其中尝试分配内存，如果他无法满足内存需求，就调用new-handler。它也应该有能力处理0bytes申请。class专属版本应该处理比正确大小更大的错误**
+
+**operator delete应该在收到null指针时不做任何事。class专属版本还应处理比正确大小更大的错误**
+
+- new
+
+~~~cpp
+class Base{
+public:
+	static void* operator new(std::size_t size)throw(std::bad_alloc);
+};
+
+void* Base::operator new(std::size_t size)throw(std::bad_alloc)
+{
+    //if(size == 0) size = 1;//不是类函数需要这一句，分配空内存也返回一个指针
+    if(size != sizeof(Base))//类的大小至少1，上一句不需要
+        return ::operator new(size);//如果不是基类（可能是派生类）令标准operator new处理
+    using namespace std;
+    while(true)
+    {
+        分配字节;
+    	if(分配成功)
+            return 指向内存的指针;
+        
+        new_handler globalHandler = set_new_handler(0);
+        set_new_handler(globalHandler);
+        
+        if(globalHandler)(*globalHandler)();
+        else throw std::bad_alloc();
+    }
+    
+}
+
+class Derived:public Base{};
+
+Derived* p = new Derived;
+
+~~~
+
+- delete
+
+~~~cpp
+class Base{
+public:
+	static void operator delete(void* rawMemory,std::size_t size)throw();
+};
+
+void Base::operator delete(void*rawMemory,std::size_t size)throw()
+{
+    if(rawMemory == 0)return ;
+    if(size != sizeof(Base))
+    {
+        ::operator delete(rawMemory);
+        return;
+    }
+    归还rawMemory所指的内存;
+    return;
+}
+~~~
+
+# 条款52：写了placement new 也要写placement delete
+
+**当你写了一个placement operator new，请确定也写出了对应的placement operator delete。如果没有这样做，你的程序可能会发生隐微而时断时续的内存泄漏**
+
+**当你声明placement new和placement delete，请确定不要无意识地掩盖他们的正常版本**
+
+- new：在空内存分配
+- operator new ：重载new
+- placement new：在已有的内存上分配，参数除了size_t还有其他的参数
+
+~~~cpp
+void* operator new(std::size_t,void* pMemory)throw();
+~~~
+
+- 如果内存分配成功，但是构造函数发生异常，系统有责任取消operator new的分配并恢复旧观
+
+~~~cpp
+class Widget{
+public:
+    static void* operator new(std::size_t size,std::ostream&logStream)throw(std::bad_alloc);
+    static void operator delete(void* pMemory)throw();//正常版new
+	static void operator delete(void* pMemory,std::ostream& logStream)throw();//placement delete
+    //如果少以上某一个版本，就会被另一个版本覆盖，不会默认生成
+};
+
+Widget* pw = new(std::cerr)Widget;//有了placement new，这次不再内存泄露
+
+delete pw;//调用正常的delete
+~~~
+
+~~~cpp
+void* operator new(std::size_t)throw(std::bad_alloc);//normal new
+void* operator new(std::size_t,void*)throw();//placement new
+void* operator new(std::size_t,const std::nothrow_t&)throw();//nothrow new
+~~~
+
+- 为了避免operator news，operator deletes覆盖标准形式，可以声明一个Base class
+
+~~~cpp
+class StandardNewDeleteForms
+{
+public:
+    static void* operator new(std::size_t)throw(std::bad_alloc){return ::operator new(size);}//normal new
+    static void operator delete(void* pMemory)throw(){::operator delete(pMemory);}//normal new
+    
+	static void* operator new(std::size_t,void*ptr)throw(){return ::operator new (size,ptr);}//placement new
+    static void operator delete(void* pMemory,void*ptr)throw(){return ::operator delete(pMemory,ptr);}//placement delete
+    
+	static void* operator new(std::size_t,const std::nothrow_t& nt)throw(){return operator::new(size,nt);}//nothrow new
+    static void* operator new(void* pMemory,const std::nothrow_t& nt)throw(){return operator::delete(pMemory);}//nothrow delete
+};
+~~~
+
+# 条款53：不要轻忽编译器的警告
+
+**严肃对待编译器发出的任何警告信息。努力在你的编译器地最高警告级别下争取“无任何警告荣誉”**
+
+**不要过度依赖编译器的报警能力，因为不同的编译器对待事情的态度并不相同。一旦移植到另一台编译器上，原本的警告就有可能消失**
+
+# 条款54：让自己熟悉包括TR1在内的标准程序库
+
+**C++标准库由STL，iostreams，locales组成。并包含C99标准程序库**
+
+**TR1添加了智能指针，一般化函数指针，hash—based容器，正则表达式等**
+
+**TR1自身知识一份规范。为获得TR1提供的好处，需要一份实物。一个好的实物来源是Boost**
+
+- 智能指针
+  - shared_ptr
+  - weak_ptr
+
+- tr1::function
+  - 表示任何可调用物，即函数或者函数对象
+
+~~~cpp
+void registerCallback(std::string func(int));
+void registerCallback(std::string (int));//equal to upper
+
+void registerCallback(std::tr1::function<std::string(int)>func);//只要函数签名满足即可
+~~~
+
+- tr1::bind
+  - 能够做STL的绑定器
+  - 可以和const，非const成员函数协作运作
+  - 可以和by-reference参数协同运作
+
+- hash tables
+  - 用来实现tr1::unordered_set，tr1::unordered_map...
+  - 无次序
+
+- 正则表达式
+  - 字符串查找替换匹配迭代...
+- Tuples（变量组）
+  - pair的替代品，pair只能两个对象，tuple可以任意个对象
+- tr1::array
+  - 支持begin，end的数组，大小固定
+- tr1::mem_fn
+  - 扩充了mem_fun,mem_fun_ref
+
+- tr1::reference_wrapper
+  - 一个让reference的行为更像对象的设施，可以造成容器“犹如持有reference”
+
+- 随机数生成工具
+- 数学特殊函数
+- C99兼容扩充
+- Type traits
+  - 用来提供类型的编译器信息
+- tr1::result_of
+  - 推导函数调用的返回类型
+
+# 条款55：让自己熟悉Boost
+
+**Boost是一个社群，也是一个网站。致力于C++程序库开发。**
+
+**Boost提供很多TR1组件实现品，以及许多其他程序库**
+
+- 字符串与文本处理
+  - 覆盖具备类型安全的printf-like格式化动作，正则表达式，以及语汇单元切割和解析
+
+- 容器
+  - 覅该接口和STL相似且大小固定的数组，大小可变的bitsets以及多维数组
+- 函数对象和高级编程
+  - Lambda
+- 泛型编程
+  - 覆盖一大组traits classes
+- 模板元编程
+  - 针对编译期assertions而写的程序库
+  - Boost MPL程序库
+- 数学和数值
+  - 有理数，八元数，四元数，公约数，多重运算，随机数
+
+- 正确性与测试
+
+  - 覆盖将隐式接口形式化的程序库
+
+  - 针对“测试优先”编程形态而设计的措施
+
+- 数据结构
+
+  - 覆盖类型安全的unions，以及tulpe程序库
+
+- 语言间的支持
+
+  - c++和python的无缝互操作性
+
+- 内存
+
+  - 覆盖Pool程序库，用来做高效而区块大小固定的分配器，
+  - non-TR1智能指针 scoped_array，用来动态分配数组
+
+- 杂项
+
+  - CRC检验，日期和时间吃力，再文件系统来回移动
