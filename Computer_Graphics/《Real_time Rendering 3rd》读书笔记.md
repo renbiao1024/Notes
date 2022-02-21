@@ -797,7 +797,7 @@ $$
   - 先渲染正向表面，再渲染背向表面，从而使轮廓边缘可见
   - 渲染北面的边界线，使用偏置技术让这条线恰好位于正表面之前
 
-![img](《Real_time Rendering 3rd》读书笔记.assets/A07A42FBA65D404A9B62096CFF7CEBAF.png)
+<img src="《Real_time Rendering 3rd》读书笔记.assets/A07A42FBA65D404A9B62096CFF7CEBAF.png" alt="img" style="zoom:50%;" />
 
 - 基于图像处理的描边
 
