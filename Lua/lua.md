@@ -766,3 +766,107 @@ newProductor = coroutine.create(productor) --1.创建协程
 consumer() -- 2.消费者开始接收
 ~~~
 
+# 文件IO
+
+- 分为简单模式和完全模式
+  - 简单模式：拥有一个当前输入文件和当前输出文件，并且提供针对这些文件的相关操作
+  - 完全模式：使用外部文件句柄实现。
+- 打开文件`file = io.open(filename[,mode])`
+- mode值
+
+| 模式 | 描述                                                         |
+| ---- | ------------------------------------------------------------ |
+| r    | 只读，文件必须存在                                           |
+| w    | 只写，文件存在则清空文件，文件不存在则创建                   |
+| a    | 以附加方式打开只写文件，文件不存在则创建，文件存在则在文件末尾附加，原内容会保留 |
+| r+   | 读写，文件必须存在                                           |
+| w+   | 打开读写文件，文件存在则清空文件，文件不存在则创建           |
+| a+   | 可读可写，其余同a                                            |
+| b    | 二进制文件                                                   |
+| +    | 对文件可读可写                                               |
+
+- io.input
+- io.output
+- io.write
+- io.read
+- io.tmpfile
+- io.type
+- io.flush
+- io.lines
+
+# 错误处理
+
+- assert
+
+~~~lua
+local function add(a,b)
+    assert(type(a) == "number","a is not a number")
+    assert(type(b) == "number","b is not a number")
+  	return a+b
+end
+
+add(10) -- error b is not a number
+~~~
+
+- error：`error(message[,level])`
+  - level = 1:调用error的位置
+  - level=2：调用error的函数
+  - level=3：不添加错误位置信息
+
+- pcall
+
+~~~Lua
+if pcall(function_name,...)then
+    --right
+    else
+    --error
+    end
+~~~
+
+- xpcall
+
+~~~Lua
+-- 第二参数时错误处理函数，发生错误时调用
+status = xpcall(func1,func2)
+print(status)
+~~~
+
+# 垃圾回收
+
+- lua自带垃圾回收功能
+
+# 面向对象
+
+~~~lua
+Shape = {area = 0} -- 元类
+
+function Shape:new(o,side) -- 创建方法
+    o = o or {}
+    setmetatable(o,self)
+    self.__index = self -- .访问属性
+    side = side or 0
+    self.area = side * area
+    return o
+end
+
+function Shape:printArea()
+    print("area is "self.area)
+end
+
+myShape = Shape:new(nil,10) -- 创建对象
+myShape:printArea() --:访问函数
+
+Square = Shape:new() -- 继承
+
+function Square:new(o,side)
+    o = o or Shape:new(o,side)
+    setmetatable(o,self)
+    self.__index = self
+    return o
+end
+
+function Square:printArea() -- 函数重写
+    print("square is"self.area)
+e
+~~~
+
