@@ -522,7 +522,7 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 高光+漫反射+环境光 = 光照模型
 ![在这里插入图片描述](UE4ComputerGraphics.assets/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAcXFfNDkzMjM1MzM=,size_20,color_FFFFFF,t_70,g_se,x_16-1640877993755142.png)
 
-## 着色频率
+## 着色模型
 
 flat shading：对每个三角形面着色
 ![在这里插入图片描述](UE4ComputerGraphics.assets/3446c72ff7b642bb8198615110729a3f.png)
