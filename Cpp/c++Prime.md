@@ -14,21 +14,22 @@
 
 - `()`调用成员函数(方法)，`if(item1.isEqual() == item2.isEqual())`
 
-  ## 转义序列
 
-  \n	换行符		 	   \'  单引号
-  \t	横向制表符		  \"  双引号
-  \a	响铃				\f	进纸符
-  \v	纵向制表符		  \?	问号
-  \\	反斜线				\b	退格符
-  \r	回车符
+## 转义序列
 
-  ## `extern`只想声明而不定义使用，且不要显式初始化。可以给extern显式初始化，一旦这样做，就成了定义。在函数体内部初始化extern标记的变量，将引发错误
+\n	换行符		 	   \'  单引号
+\t	横向制表符		  \"  双引号
+\a	响铃				\f	进纸符
+\v	纵向制表符		  \?	问号
+\\	反斜线				\b	退格符
+\r	回车符
+
+## `extern`只想声明而不定义使用，且不要显式初始化。可以给extern显式初始化，一旦这样做，就成了定义。在函数体内部初始化extern标记的变量，将引发错误
 
 ~~~cpp
 extern int i; //声明
 int j;        //声明并定义
-extern double pi-3.1416 //定义
+extern double pi=3.1416 //定义
 ~~~
 
 ## void* 指针是一种特殊的指针类型，可存放任意类型对象的地址
@@ -61,7 +62,7 @@ const的引用，对常量的引用不可修改其绑定的对象。
 const int ci = 1024;
 const int &r1 = ci;
 r1 = 2048;//error，r1是对常量的引用
-int &r2 = ci;//error,非常量引用指向一个常量引用
+int &r2 = ci;//error,非常量引用指向一个常量引
 ~~~
 
 引用的类型必须严格匹配
@@ -90,11 +91,11 @@ i = 10;
 std::cout << r2 << std::endl; //输出10
 ~~~
 
-## volitile
+## volatile
 
 和const相对
 
-表明该变量随时会变，不要进行编译优化
+表明该变量随时会变，**不要进行编译优化**
 
 多线程保证值改变后返回主线程
 
@@ -102,8 +103,6 @@ std::cout << r2 << std::endl; //输出10
 for(volatile int x = 0;x<1000;++x);
 //g
 ~~~
-
-
 
 ## 指向常量的指针&常量指针
 
@@ -126,7 +125,7 @@ const double *const pip=&pi;  //指向常量对象的常量指针。pip是const�
 
 ## constexpr && 常量表达式
 
-常量表达式：指不会改变，且在编译期就能得到结果的表达式（两个条件缺一不可）
+常量表达式：指**不会改变**，且在**编译期**就能得到结果的表达式（两个条件缺一不可）
 
 用常量表达式初始化的const对象也是常量表达式。
 
@@ -139,7 +138,7 @@ int staff_size=27; //不是，因为类型不是const int
 const int sz =get_size(); //不是，因为get_size()运行时才确定
 ~~~
 
-constexpr：由编译器来验证变量是否是一个常量表达式
+constexpr：由编译器来**验证**变量是否是一个常量表达式
 
 ~~~cpp
 constexpr int mf=20;  //是常量表达式
@@ -597,7 +596,7 @@ while(code>=red&&code<=orange)
         case blue :...break;
         case green :...break;
             ...
-                default:...;
+        default:...;
     }
 }
 ~~~
@@ -628,7 +627,7 @@ const int* p1 = &b;
 ~~~cpp
 int x = 0;
 int *p1 = &x;
-const int *p2 = &x;//不能修改p3指向的值
+const int *p2 = &x;//不能修改p2指向的值
 int* const p3 = &x;//不能修改p3指向的地址
 const int* const p4 = &x;//都不能改
 ~~~
@@ -717,7 +716,7 @@ int arr[];
 
 ## 指针&引用
 
-引用在声明的时候必须初始化，类似const *，一旦初始化，就不能修改
+引用在声明的时候必须初始化，类似*const，一旦初始化，就不能修改
 
 ~~~cpp
 int rat ;
@@ -752,10 +751,10 @@ int *const pr = &rat;//equal to upper
     - 数据对象小？
     
       - 小：传值
-        - 大
-      
-          - 是数组：传指向const的指针
-      - 是类对象:传引用
+      - 大
+    
+        - 是数组：传指向const的指针
+        - 是类对象:传引用
 
 ## 函数重载
 

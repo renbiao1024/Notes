@@ -140,16 +140,30 @@ void Transformation_2() {
 
 # MVP变换
 
-Model transformation（模型变换）：用一个变化矩阵把actor的顶点坐标从Local坐标系（相对）转换到世界Global坐标系（绝对）。
-![在这里插入图片描述](UE4ComputerGraphics.assets/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAcXFfNDkzMjM1MzM=,size_16,color_FFFFFF,t_70,g_se,x_16-1640877993753129.png)
 
-View transformation（视口变换）：将世界坐标系转换到摄像机坐标系
-![在这里插入图片描述](UE4ComputerGraphics.assets/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAcXFfNDkzMjM1MzM=,size_17,color_FFFFFF,t_70,g_se,x_16-1640877993753130.png)
 
-Projection transformation（投影变换）：找到屏幕，把Actor平移缩放到屏幕上![在这里插入图片描述](UE4ComputerGraphics.assets/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAcXFfNDkzMjM1MzM=,size_15,color_FFFFFF,t_70,g_se,x_16-1640877993753131.png)
-![在这里插入图片描述](UE4ComputerGraphics.assets/5c005622fad34ba2a3773e044ba7fb5c.png)
-![在这里插入图片描述](UE4ComputerGraphics.assets/a644e831a0b44a81a621b37ffcf722f7.png)
-![在这里插入图片描述](UE4ComputerGraphics.assets/2411a90522ac4d3794f736e6d68c9d2e.png)
+![img](UE4ComputerGraphics.assets/v2-abeba6616f1aab5637b33ba035715848_720w.jpg)
+
+- Model transformation（模型变换）：用一个变化矩阵把actor的顶点坐标从Local坐标系（相对）转换到世界Global坐标系（绝对）。
+  
+- View transformation（视口变换）：将世界坐标系转换到摄像机坐标系
+  - 设摄像机朝向的方向向量为 g，up direction 为 t，分解一下这个变换：
+    1. 将摄像机移到原点；
+    2. 将 g 旋转到 -z 方向；
+    3. 将 t 旋转到 y 方向；
+    4. 将 (g x t) 旋转到 x 方向；
+  - ![在这里插入图片描述](UE4ComputerGraphics.assets/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAcXFfNDkzMjM1MzM=,size_17,color_FFFFFF,t_70,g_se,x_16-1640877993753130.png)
+
+- Projection transformation（投影变换）：找到屏幕，把Actor平移缩放到屏幕上![在这里插入图片描述](UE4ComputerGraphics.assets/watermark,type_ZHJvaWRzYW5zZmFsbGJhY2s,shadow_50,text_Q1NETiBAcXFfNDkzMjM1MzM=,size_15,color_FFFFFF,t_70,g_se,x_16-1640877993753131.png)
+  - 透视投影变换就可以分解成如下两个步骤：
+    1. 将四棱台变换成长方体。就是顶面不动，把内部、侧面以及底面向内压缩成一个长方体。
+    2. 把长方体做正交投影变换。
+  - ![preview](UE4ComputerGraphics.assets/v2-9f157469b7f9b7ab350765fef033a1b2_r.jpg)
+  - ![在这里插入图片描述](UE4ComputerGraphics.assets/5c005622fad34ba2a3773e044ba7fb5c.png)
+    ![在这里插入图片描述](UE4ComputerGraphics.assets/a644e831a0b44a81a621b37ffcf722f7.png)
+  - 正交投影:对空间中![[公式]](https://www.zhihu.com/equation?tex=%5Bl%2C+r%5D+%5Ctimes+%5Bb%2C+t%5D+%5Ctimes+%5Bf%2C+n%5D)的体积成像，将其变换到 ![[公式]](https://www.zhihu.com/equation?tex=%5B-1%2C1%5D%5E3) ，那么它的变换可以分解为：先平移这个空间的中心到原点，再放缩。
+    - ![在这里插入图片描述](UE4ComputerGraphics.assets/2411a90522ac4d3794f736e6d68c9d2e.png)
+- 最终得到透视投影矩阵：![preview](UE4ComputerGraphics.assets/v2-eb5992872c8f8ab9317d43334a892684_r.jpg)
 
 ### 例题
 
