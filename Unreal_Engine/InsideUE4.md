@@ -168,3 +168,69 @@ void UChildActorComponent::OnComponentCreated()
 
 
 ![img](InsideUE4.assets/v2-825217f7dc7b7f3ce2068433b037dfb7_720w.png)
+
+## Level
+
+- 关卡蓝图本身就是一个看不见的Actor，可以添加组件
+
+~~~cpp
+void ALevelScriptActor::PreInitializeComponents()
+{
+    if (UInputDelegateBinding::SupportsInputDelegate(GetClass()))
+    {
+        // create an InputComponent object so that the level script actor can bind key events
+        InputComponent = NewObject<UInputComponent>(this);
+        InputComponent->RegisterComponent();
+        UInputDelegateBinding::BindInputDelegates(GetClass(), InputComponent);
+    }
+    Super::PreInitializeComponents();
+}
+~~~
+
+
+
+![img](InsideUE4.assets/v2-bca44e1f846c37b12f08bc0a6659b4ae_720w.png)
+
+## World
+
+- 可以用SubLevel的方式把Level拼装起来
+
+- 也可以WorldComposition的方式自动把项目里的所有Level都组合起来，并设置摆放位置
+
+- 一个World里有多个Level，这些Level在什么位置，是在一开始就加载进来，还是Streaming运行时加载。UE里每个World支持一个PersistentLevel和多个其他Level
+
+> Persistent的意思是一开始就加载进World，Streaming是后续动态加载的意思。Levels里保存有所有的当前已经加载的Level，StreamingLevels保存整个World的Levels配置列表。PersistentLevel和CurrentLevel只是个快速引用。
+
+![img](InsideUE4.assets/v2-41963e6f39bcefb2d799d31bec703759_720w.png)
+
+- 世界设置
+
+~~~cpp
+AWorldSettings* UWorld::GetWorldSettings( bool bCheckStreamingPesistent, bool bChecked ) const
+{
+    checkSlow(IsInGameThread());
+    AWorldSettings* WorldSettings = nullptr;
+    if (PersistentLevel)//游戏第一个场景（主场景）为主设置其他为辅的Level配置系统
+    {
+        WorldSettings = PersistentLevel->GetWorldSettings(bChecked);
+        if( bCheckStreamingPesistent )
+        {
+            if( StreamingLevels.Num() > 0 &&
+                StreamingLevels[0] &&
+                StreamingLevels[0]->IsA<ULevelStreamingPersistent>()) 
+            {
+                ULevel* Level = StreamingLevels[0]->GetLoadedLevel();
+                if (Level != nullptr)
+                {
+                    WorldSettings = Level->GetWorldSettings();
+                }
+            }
+        }
+    }
+    return WorldSettings;
+}
+~~~
+
+- Levels共享着World的一个PhysicsScene，这也意味着Levels里的Actors的物理实体其实都是在World里的
+
+- Level作为Actor的容器，同时也划分了World，一方面支持了Level的动态加载，另一方面也允许了团队的实时协作，大家可以同时并行编辑不同的Level。
