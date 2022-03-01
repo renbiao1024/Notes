@@ -234,3 +234,121 @@ AWorldSettings* UWorld::GetWorldSettings( bool bCheckStreamingPesistent, bool bC
 - Levels共享着World的一个PhysicsScene，这也意味着Levels里的Actors的物理实体其实都是在World里的
 
 - Level作为Actor的容器，同时也划分了World，一方面支持了Level的动态加载，另一方面也允许了团队的实时协作，大家可以同时并行编辑不同的Level。
+
+## WorldContext
+
+- 世界类型
+
+~~~cpp
+namespace EWorldType
+{
+	enum Type
+	{
+		None,		// An untyped world, in most cases this will be the vestigial worlds of streamed in sub-levels
+		Game,		// The game world
+		Editor,		// A world being edited in the editor
+		PIE,		// A Play In Editor world
+		Preview,	// A preview world for an editor tool
+		Inactive	// An editor world that was loaded but not currently being edited in the level editor
+	};
+}
+~~~
+
+- WordContext用来管理跟踪这些World
+
+![img](InsideUE4.assets/v2-5ded56be67f4082ee7f77a0c3fa0960f_720w.png)
+
+~~~cpp
+struct FWorldContext
+{
+    [...]
+	TEnumAsByte<EWorldType::Type>	WorldType;
+
+	FSeamlessTravelHandler SeamlessTravelHandler;
+
+	FName ContextHandle;
+//TravelURL和TravelType就是负责设定下一个Level的目标和转换过程。
+	/** URL to travel to for pending client connect */
+	FString TravelURL;
+
+	/** TravelType for pending client connects */
+	uint8 TravelType;
+
+	/** URL the last time we traveled */
+	UPROPERTY()
+	struct FURL LastURL;
+
+	/** last server we connected to (for "reconnect" command) */
+	UPROPERTY()
+	struct FURL LastRemoteURL;
+
+}
+
+// Traveling from server to server.
+UENUM()
+enum ETravelType
+{
+	/** Absolute URL. */
+	TRAVEL_Absolute,
+	/** Partial (carry name, reset server). */
+	TRAVEL_Partial,
+	/** Relative URL. */
+	TRAVEL_Relative,
+	TRAVEL_MAX,
+};
+
+void UEngine::SetClientTravel( UWorld *InWorld, const TCHAR* NextURL, ETravelType InTravelType )
+{
+	FWorldContext &Context = GetWorldContextFromWorldChecked(InWorld);
+	// set TravelURL.  Will be processed safely on the next tick in UGameEngine::Tick().
+	Context.TravelURL    = NextURL;
+	Context.TravelType   = InTravelType;
+    [...]
+}
+~~~
+
+- 流程是UE在OpenLevel的时候， 先设置当前World的Context上的TravelURL，然后在UEngine::TickWorldTravel的时候判断TravelURL非空来真正执行Level的切换。
+
+~~~cpp
+void UGameplayStatics::LoadStreamLevel(UObject* WorldContextObject, FName LevelName,bool bMakeVisibleAfterLoad,bool bShouldBlockOnLoad,FLatentActionInfo LatentInfo)
+{
+	if (UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject))
+	{
+		FLatentActionManager& LatentManager = World->GetLatentActionManager();
+		if (LatentManager.FindExistingAction<FStreamLevelAction>(LatentInfo.CallbackTarget, LatentInfo.UUID) == nullptr)
+		{
+			FStreamLevelAction* NewAction = new FStreamLevelAction(true, LevelName, bMakeVisibleAfterLoad, bShouldBlockOnLoad, LatentInfo, World);
+			LatentManager.AddNewAction(LatentInfo.CallbackTarget, LatentInfo.UUID, NewAction);
+		}
+	}
+}
+~~~
+
+## GameInstance
+
+![img](InsideUE4.assets/v2-36b45a7b36ac77d978719bc6fe8db17b_720w.png)
+
+- GameInstance里会保存着当前的WorldConext和其他整个游戏的信息。
+
+- 不管Level怎么切换，还是会一直存在
+
+## Engine
+
+![img](InsideUE4.assets/v2-94d1f4e3750b6f4fd09d02b20bc980b0_720w.png)
+
+- 分为UGameEngine和UEditorEngine，编辑器也是个游戏
+
+- Standalone Game：会使用UGameEngine来创建出唯一的一个GameWorld，因为也只有一个，所以为了方便起见，就直接保存了GameInstance指针。
+- 而对于编辑器来说，EditorWorld其实只是用来预览，所以并不拥有OwningGameInstance，而PlayWorld里的OwningGameInstance才是间接保存了GameInstance.
+- GEngine是引擎的根
+
+## GamePlayStatics
+
+- 在Engine层次便利操作蓝图函数库
+
+~~~cpp
+UCLASS ()
+class UGameplayStatics : public UBlueprintFunctionLibrary 
+~~~
+
+- 蓝图里见到的GetPlayerController、SpawActor和OpenLevel等都是来至于这个类的接口。

@@ -8,5 +8,5 @@
 | declare type     | 类型推导         | decltype  |
 | exception        | 例外             | noexpect  |
 | explicit         | 明确，显式的     | explicit  |
-|                  |                  |           |
+| register         | 注册             | register  |
 
