@@ -9,4 +9,5 @@
 | exception        | 例外             | noexpect  |
 | explicit         | 明确，显式的     | explicit  |
 | register         | 注册             | register  |
+| mutable          | 可变的           | mutable   |
 

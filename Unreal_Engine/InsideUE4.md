@@ -352,3 +352,17 @@ class UGameplayStatics : public UBlueprintFunctionLibrary
 ~~~
 
 - 蓝图里见到的GetPlayerController、SpawActor和OpenLevel等都是来至于这个类的接口。
+
+## Pawn
+
+1. 可被Controller控制
+2. PhysicsCollision表示
+3. MovementInput的基本响应接口
+
+![img](InsideUE4.assets/v2-12b8b0034f3068f8d7c2739cb1f654a5_720w.png)
+
+![img](InsideUE4.assets/v2-e3e8606aa67344bf178fd9097d249693_720w.png)
+
+- SpectatorPawn：观战Pawn（不带重力漫游场景），关闭了StaticMesh显示，碰撞也设为了Spectator
+
+- Character：人形Pawn
