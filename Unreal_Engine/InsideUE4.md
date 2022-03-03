@@ -366,3 +366,68 @@ class UGameplayStatics : public UBlueprintFunctionLibrary
 - SpectatorPawn：观战Pawn（不带重力漫游场景），关闭了StaticMesh显示，碰撞也设为了Spectator
 
 - Character：人形Pawn
+
+## Controller
+
+![img](InsideUE4.assets/v2-4151952d1f2ab74fcc78d7c3bd215e0d_720w.png)
+
+![img](InsideUE4.assets/v2-117fa2fe09c46ed2dac388278f028df0_720w-16463103583904.png)
+
+- 比AActor多了控制Pawn的能力
+
+~~~cpp
+//Pawn自身上也可以配置策略
+namespace EAutoReceiveInput
+{
+    enum Type
+    {
+        Disabled,
+        Player0,
+        Player1,
+        Player2,
+        Player3,
+        Player4,
+        Player5,
+        Player6,
+        Player7,
+    };
+}
+TEnumAsByte<EAutoReceiveInput::Type> AutoPossessPlayer;
+enum class EAutoPossessAI : uint8
+{
+    /** Feature is disabled (do not automatically possess AI). */
+    Disabled,
+    /** Only possess by an AI Controller if Pawn is placed in the world. */
+    PlacedInWorld,
+    /** Only possess by an AI Controller if Pawn is spawned after the world has loaded. */
+    Spawned,
+    /** Pawn is automatically possessed by an AI Controller whenever it is created. */
+    PlacedInWorldOrSpawned,
+};
+EAutoPossessAI AutoPossessAI;
+TSubclassOf<AController> AIControllerClass;
+~~~
+
+- 如果是一些Pawn本身固有的能力逻辑，如前进后退、播放动画、碰撞检测之类的就完全可以在Pawn内实现；而对于一些可替换的逻辑，或者智能决策的，就应该归Controller管辖。
+- 如果一个逻辑只属于某一类Pawn，那么其实你放进Pawn内也挺好。而如果一个逻辑可以应用于多个Pawn，那么放进Controller就可以组合应用了。
+
+- 从存在性来说，Controller的生命期比Pawn要长一些，比如我们经常会实现的游戏中玩家死亡后复活的功能。Pawn死亡后，这个Pawn就被Destroy了，就算之后再Respawn创建出来一个新的，但是Pawn身上保存的变量状态都已经被重置了。所以对于那些需要在Pawn之外还要持续存在的逻辑和状态，放进Controller中是更好的选择。
+
+~~~cpp
+ /** PlayerState containing replicated information about the player using this controller (only exists for players, not NPCs). */
+//playerController存储着playerState
+    UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Controller")
+    class APlayerState* PlayerState;
+~~~
+
+## APlayerState
+
+![img](InsideUE4.assets/v2-ba203b15c1e9356d5aa7fe6bf2fd556c_720w.png)
+
+- APlayerState也理所当然是生成在Level中的，跟Pawn和Controller是平级的关系，Controller里只不过保存了一个指针引用罢了。
+
+- PlayerState表示的是玩家的游玩数据
+
+- Controller本身运行需要的临时数据也不应该归PlayerState管理
+- 跨关卡的统计数据等就也不应该放进PlayerState里了，应该放在外面的GameInstance，然后用SaveGame保存起来。因为玩家在切换关卡的时候，APlayerState也会被释放掉
+
