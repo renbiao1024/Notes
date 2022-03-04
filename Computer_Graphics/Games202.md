@@ -191,7 +191,9 @@ $$
   - 简单卷积
   - 少数基函数：低频率
 
-## PRT（Precomputed Radiance Transfer ）预计算辐射传输
+## PRT（Precomputed Radiance Transfer ）预计算辐射传输（不懂啊~~~~~~~~~~~）
+
+- 处理环境光
 
 ![image-20220303185538356](Games202.assets/image-20220303185538356.png)
 
@@ -202,3 +204,19 @@ $$
   - 光源不能旋转
 
 - 在计算shading 和 shadow时只需要进行向量li和ti的点乘即可得到结果.现在就能环境光的情况下,通过使用PRT来计算出diffuse物体的shading 和 Shadow了.
+
+### 总结
+
+- 近似照明和光传输使用基函数(SH)
+
+  - 照明->照明系数
+
+  - 光传输->系数/矩阵
+
+- 预先计算和存储光传输
+
+- 渲染简化为：
+  - 漫射：点积
+  - 光泽：向量矩阵乘法
+
+## RSM（Reflective Shadow Maps）

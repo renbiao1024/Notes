@@ -1,1 +1,0 @@
-![day4](day4.assets/day4.png)

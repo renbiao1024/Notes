@@ -431,3 +431,28 @@ TSubclassOf<AController> AIControllerClass;
 - Controller本身运行需要的临时数据也不应该归PlayerState管理
 - 跨关卡的统计数据等就也不应该放进PlayerState里了，应该放在外面的GameInstance，然后用SaveGame保存起来。因为玩家在切换关卡的时候，APlayerState也会被释放掉
 
+## PlayerController && AIController
+
+![img](InsideUE4.assets/v2-88131e55febd8886e0f3c87b92c526e8_720w.png)
+
+- camera管理
+- input系统
+- UPlayer关联：不仅能控制本地的pawn，还能控制网络上的pawn
+- HUD显示
+- LEVEL的切换
+- Voice语音聊天
+- playerController代表玩家意志，playerState代表玩家状态
+
+## AAIController
+
+![img](InsideUE4.assets/v2-88131e55febd8886e0f3c87b92c526e8_720w-16463952110102.png)
+
+- AI不需要玩家控制，可以自行决策行动，但AI的逻辑也需要一个运行的实体
+- 同PlayerController对比，少了Camera、Input、UPlayer关联，HUD显示，Voice、Level切换接口，但也增加了一些AI需要的组件：
+- Navigation，用于智能根据导航寻路（MoveTo）
+- AI组件，运行启动行为树，使用黑板数据，探索周围环境。
+- Task系统，让AI去完成一些任务，也是实现GameplayAbilities系统的一个接口。简单来说GameplayAbilities是为Actor添加额外能力属性集合的一个模块，比如HP，MP等。其中的GamePlayEffect也是用来实现Buffer的工具。另外GamePlayTags也是用来给Actor添加标签标记来表明状态的一种机制。
+
+## Actor的控制逻辑
+
+![img](InsideUE4.assets/v2-3bd34e0947e07fe6b4e54b025977b3ac_720w.png)
