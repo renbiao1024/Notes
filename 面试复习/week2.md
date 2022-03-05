@@ -1,0 +1,1 @@
+![Week_2_day1](week2.assets/Week_2_day1.png)

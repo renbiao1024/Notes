@@ -456,3 +456,68 @@ TSubclassOf<AController> AIControllerClass;
 ## Actor的控制逻辑
 
 ![img](InsideUE4.assets/v2-3bd34e0947e07fe6b4e54b025977b3ac_720w.png)
+
+## GameMode
+
+- UE中认为游戏是有一个个world构成的，world是由一个个level构成的
+- 游戏的逻辑操纵者。类似一个world controller
+
+![img](InsideUE4.assets/v2-77a448b9caf4758f1b45cbee9bddb1e8_720w.png)
+
+- 主要功能
+
+  - **class登记**：GameMode里登记了游戏里基本需要的类型信息，在需要的时候通过UClass的反射可以自动Spawn出相应的对象来添加进关卡中。
+  - **spawn实体**：GameMode既然作为一场游戏的主要负责人，那么游戏的加载释放过程中涉及到的实体的产生，包括玩家Pawn和PlayerController，AIController也都是由GameMode负责。最主要的SpawnDefaultPawnFor、SpawnPlayerController、ShouldSpawnAtStartSpot这一系列函数都是在接管玩家实体的生成和释放，玩家进入该游戏的过程叫做Login（和服务器统一），也控制进来后在什么位置，等等这些实体管理的工作。GameMode也控制着本场游戏支持的玩家、旁观者和AI实体的数目。
+
+  - **游戏的进度**：一个游戏支不支持暂停，怎么重启等这些涉及到游戏内状态的操作也都是GameMode的工作之一，SetPause、ResartPlayer等函数可以控制相应逻辑。
+  - **Level的切换**：或者说World的切换更加合适，GameMode也决定了刚进入一场游戏的时候是否应该开始播放开场动画（cinematic），也决定了当要切换到下一个关卡时是否要bUseSeamlessTravel，一旦开启后，你可以重载GameMode和PlayerController的GetSeamlessTravelActorList方法和GetSeamlessTravelActorList来指定哪些Actors不被释放而进入下一个World的Level。
+  - **多人游戏的步调同步**：在多人游戏的时候，我们常常需要等所有加入的玩家连上之后，载入地图完毕后才能一起开始逻辑。因此UE提供了一个MatchState来指定一场游戏运行的状态，用了一个状态机来标记开始和结束的状态，并触发各种回调。
+
+~~~cpp
+void AGameMode::GetSeamlessTravelActorList(bool bToTransition, TArray<AActor*>& ActorList)
+{
+	UWorld* World = GetWorld();
+
+	// Get allocations for the elements we're going to add handled in one go
+	const int32 ActorsToAddCount = World->GameState->PlayerArray.Num() + (bToTransition ?  3 : 0);
+	ActorList.Reserve(ActorsToAddCount);
+
+	// always keep PlayerStates, so that after we restart we can keep players on the same team, etc
+	ActorList.Append(World->GameState->PlayerArray);
+
+	if (bToTransition)
+	{
+		// keep ourselves until we transition to the final destination
+		ActorList.Add(this);
+		// keep general game state until we transition to the final destination
+		ActorList.Add(World->GameState);
+		// keep the game session state until we transition to the final destination
+		ActorList.Add(GameSession);
+
+		// If adding in this section best to increase the literal above for the ActorsToAddCount
+	}
+    //UE的流程travelling，GameMode在新的World里是会新生成一个的，即使Class类型一致，即使bUseSeamlessTravel，因此在travelling的时候要小心GameMode里保存的状态丢失。不过Pawn和Controller默认是一致的。
+}
+~~~
+
+- GameMode应该专注于逻辑的实现，而LevelScriptActor应该专注于本Level的表示逻辑，比如改变Level内某些Actor的运动轨迹，或者某一个区域的重力，或者触发一段特效或动画。而GameMode应该专注于玩法，比如胜利条件，怪物刷新等。
+
+- 同Controller应用到Pawn一样道理，因为GameMode是可以应用在不同的Level的，所以**通用的玩法**应该放在GameMode里。
+
+- GameMode只在Server存在（单机游戏也是Server），对于已经连接上Server的Client来说，因为游戏的状态都是由Sever决定的，Client只是负责展示，所以Client上是没有GameMode的，但是有LevelScriptActor，所以GameMode里**不要写Client特定相关的逻辑**，比如操作UI等。
+
+- gameinstance可用来协调不同gamemode
+
+## GameState
+
+![img](InsideUE4.assets/v2-7d2b6410a98ae6819a358e59b5cf8eaa_720w.png)
+
+- 在网络中传播同步游戏的状态使用的（记得GameMode在Client并不存在，但是GameState是存在的，所以可以通过它来复制）
+
+- 玩家状态列表，同样的如果在Client1想看到Client2的游戏状态数据，则Client2的PlayerState就必须广播过来，因此GameState把当前Server的PlayerState都收集了过来，方便访问使用。
+
+- 自定义GameState子类来存储本GameMode的运行过程中产生的数据（那些想要replicated的!），如果是GameMode游戏运行的一些数据，又不想要所有的客户端都可以看到，则也可以写在GameMode的成员变量中。重复遍，PlayerState是玩家自己的游戏数据，GameInstance里是程序运行的全局数据。
+
+## 关系
+
+![img](InsideUE4.assets/v2-732b99e7784299a93449256f076eea76_720w.png)
