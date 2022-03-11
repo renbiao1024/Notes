@@ -9,3 +9,5 @@
 ![Week_2_day5](week2.assets/Week_2_day5.png)
 
 ![Week_2_day6](week2.assets/Week_2_day6.png)
+
+![Week_2_day7](week2.assets/Week_2_day7.png)
