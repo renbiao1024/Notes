@@ -1,0 +1,54 @@
+~~~cpp
+#include <list>
+
+tempalte<class obj>
+class ObjectPool
+{
+public:
+  //根据传入的参数构造双向链表
+  ObjcetPool(size_t size):m_size(size);
+  {
+      while(size_t i = 0 ; i < m_size ; ++i)
+      {
+          ObjPool.push_back(new obj());
+      }
+  }
+  //释放链表的全部节点，大小重置为0
+  ~ObjectPool()
+ {
+    typename list<obj*> iterator iter = ObjPool.begin();
+    while(iter != ObjPool.end())
+    {
+        delete (*iter);
+        ++iter;
+    }
+    m_size = 0;
+}
+//从池中取元素
+obj* getObject()
+{
+    obj *pObj = nullptr;
+    if(m_size == 0)
+    {
+        pObj = new obj();
+    }
+    else
+    {
+        pObj = ObjPool.front();
+        objPool.pop_front();
+        --m_size;
+    }
+    return pObj;
+}
+//放回池中
+void returnObject(obj*pObj)
+{
+    objPool.push_back(pObj);
+    ++m_size();
+}
+
+private:
+    size_t m_size;
+    List<obj*>objPool;
+};
+~~~
