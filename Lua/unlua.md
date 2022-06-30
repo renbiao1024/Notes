@@ -118,7 +118,7 @@ Widget:AddToViewport(0)
 Widget:AddToViewport()
 ~~~
 
-- 处理f非常量参数
+- 处理非常量参数
 
   - 基本类型 bool,integer,number,string
 
